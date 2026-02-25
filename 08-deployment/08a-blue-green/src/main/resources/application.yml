@@ -1,0 +1,42 @@
+server:
+  port: 8801
+
+spring:
+  application:
+    name: blue-green-router
+  cloud:
+    gateway:
+      routes:
+        # ACTIVE (Green) — current production, receives 100% traffic by default
+        - id: green
+          uri: http://localhost:8811
+          predicates:
+            - Path=/api/**
+            - Header=X-Version, green
+          order: 1
+
+        # STANDBY (Blue) — new version, receives 0% normally
+        # To switch: update the default route below to point to blue
+        - id: blue
+          uri: http://localhost:8812
+          predicates:
+            - Path=/api/**
+            - Header=X-Version, blue
+          order: 2
+
+        # DEFAULT: routes to active environment
+        - id: default-production
+          uri: http://localhost:8811   # Change to 8812 to flip to blue
+          predicates:
+            - Path=/api/**
+          order: 100
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,refresh
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

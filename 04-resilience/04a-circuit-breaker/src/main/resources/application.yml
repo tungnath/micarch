@@ -1,0 +1,43 @@
+server:
+  port: 8401
+
+spring:
+  application:
+    name: circuit-breaker-demo
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      paymentService:
+        # Number of calls in closed state before evaluating failure rate
+        slidingWindowSize: 10
+        # Open CB when failure rate >= 50%
+        failureRateThreshold: 50
+        # How long to stay OPEN before transitioning to HALF_OPEN
+        waitDurationInOpenState: 10s
+        # Number of calls in HALF_OPEN state to probe
+        permittedNumberOfCallsInHalfOpenState: 3
+        # Automatically jump to HALF_OPEN after wait
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        # Exceptions that count as failures
+        recordExceptions:
+          - java.io.IOException
+          - java.net.ConnectException
+          - org.springframework.web.client.HttpServerErrorException
+  timelimiter:
+    instances:
+      paymentService:
+        timeoutDuration: 3s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circiutbreakerevents
+  health:
+    circuitbreakers:
+      enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

@@ -1,0 +1,28 @@
+server:
+  port: 8204
+
+spring:
+  application:
+    name: grpc-order-service
+
+# gRPC server config
+grpc:
+  server:
+    port: 9090
+    enable-reflection: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.micarch.grpc: DEBUG
+    io.grpc: INFO
+    net.devh.boot.grpc: DEBUG

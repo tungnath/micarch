@@ -1,0 +1,41 @@
+server:
+  port: 9003
+
+spring:
+  application:
+    name: shared-kernel-demo
+  datasource:
+    url: jdbc:h2:mem:sharedkernel
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+# Shared kernel configuration:
+# Demonstrates Money, Address, and AuditInfo value objects
+# shared between Order and Inventory bounded contexts
+shared-kernel:
+  currency-default: USD
+  audit:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.micarch.sharedkernel: DEBUG

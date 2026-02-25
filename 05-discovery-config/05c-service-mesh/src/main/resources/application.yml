@@ -1,0 +1,48 @@
+server:
+  port: 8501
+
+spring:
+  application:
+    name: service-mesh-concept
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+
+# Simulate Istio-like policies in Spring
+resilience4j:
+  circuitbreaker:
+    instances:
+      meshCb:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+  retry:
+    instances:
+      meshRetry:
+        max-attempts: 3
+        wait-duration: 200ms
+  timelimiter:
+    instances:
+      meshTimeout:
+        timeout-duration: 2s
+
+# mTLS simulation (in real Istio, handled by proxy sidecars)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.micarch.mesh: DEBUG

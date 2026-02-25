@@ -1,0 +1,37 @@
+server:
+  port: 8403
+
+spring:
+  application:
+    name: rate-limiter-demo
+
+resilience4j:
+  ratelimiter:
+    instances:
+      apiRateLimit:
+        limit-for-period: 10           # 10 calls
+        limit-refresh-period: 1s       # per second (token bucket refills every 1s)
+        timeout-duration: 0s           # fail fast, don't queue
+        register-health-indicator: true
+      premiumApiRateLimit:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 0s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,ratelimiters
+  health:
+    ratelimiters:
+      enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.micarch.ratelimiter: DEBUG
+    io.github.resilience4j: DEBUG

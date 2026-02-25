@@ -1,0 +1,44 @@
+server:
+  port: 8402
+
+spring:
+  application:
+    name: retry-timeout-demo
+
+resilience4j:
+  retry:
+    instances:
+      externalService:
+        max-attempts: 4
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        randomized-wait-factor: 0.3
+        retry-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.io.IOException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException.NotFound
+  timelimiter:
+    instances:
+      externalService:
+        timeout-duration: 3s
+        cancel-running-future: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,retries
+  health:
+    retries:
+      enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.micarch.retry: DEBUG
+    io.github.resilience4j: DEBUG

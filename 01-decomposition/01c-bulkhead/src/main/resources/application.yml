@@ -1,0 +1,40 @@
+server:
+  port: 8103
+
+spring:
+  application:
+    name: bulkhead
+
+resilience4j:
+  bulkhead:
+    instances:
+      orderService:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 500ms
+      paymentService:
+        maxConcurrentCalls: 3
+        maxWaitDuration: 100ms
+  thread-pool-bulkhead:
+    instances:
+      inventoryService:
+        maxThreadPoolSize: 4
+        coreThreadPoolSize: 2
+        queueCapacity: 10
+        keepAliveDuration: 20ms
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,bulkheads
+  health:
+    bulkheads:
+      enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.micarch.bulkhead: DEBUG

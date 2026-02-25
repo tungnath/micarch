@@ -1,0 +1,16 @@
+server:
+  port: 8402  # This is the flakey "payment service" called by the CB demo
+
+spring:
+  application:
+    name: circuit-breaker-payment-target
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.micarch: DEBUG

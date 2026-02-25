@@ -1,0 +1,38 @@
+server:
+  port: 8404
+
+spring:
+  application:
+    name: sidecar-proxy
+
+# Sidecar proxy config: the main app runs on 8405, the sidecar (this) on 8404
+# All outbound traffic from the main app goes through the sidecar
+sidecar:
+  main-app-port: 8405
+  upstream-services:
+    payment: http://localhost:8401
+    inventory: http://localhost:8301
+
+resilience4j:
+  retry:
+    instances:
+      sidecarRetry:
+        max-attempts: 3
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+  circuitbreaker:
+    instances:
+      sidecarCb:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    com.micarch.sidecar: DEBUG

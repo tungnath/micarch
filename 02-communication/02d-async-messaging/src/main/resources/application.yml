@@ -1,0 +1,49 @@
+server:
+  port: 8203
+
+spring:
+  application:
+    name: async-messaging-demo
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+        enable.idempotence: true
+        acks: all
+        retries: 3
+    consumer:
+      group-id: async-demo-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.micarch.messaging.*"
+        isolation.level: read_committed
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Topic names
+kafka:
+  topics:
+    order-created: order-events
+    inventory-reserved: inventory-events
+    notification: notification-events
+    dead-letter: order-events.DLT
+
+logging:
+  level:
+    com.micarch.messaging: DEBUG
+    org.springframework.kafka: INFO

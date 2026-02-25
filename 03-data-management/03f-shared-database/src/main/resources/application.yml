@@ -1,0 +1,36 @@
+server:
+  port: 8306
+
+spring:
+  application:
+    name: shared-database-antipattern
+  # ANTI-PATTERN: All services sharing ONE schema in one datasource
+  datasource:
+    url: jdbc:h2:mem:shareddb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true  # Show SQL to expose the coupling problem
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Note: This module intentionally uses a shared schema to demonstrate
+# the coupling problem. Orders, Inventory, and Users all share tables.
+logging:
+  level:
+    com.micarch.shareddb: DEBUG

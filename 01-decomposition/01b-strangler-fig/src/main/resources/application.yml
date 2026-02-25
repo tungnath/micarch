@@ -1,0 +1,34 @@
+server:
+  port: 8102
+
+spring:
+  application:
+    name: strangler-fig
+  cloud:
+    gateway:
+      routes:
+        # NEW: Migrated /api/orders/** → new Order microservice
+        - id: orders-new
+          uri: http://localhost:8101
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - StripPrefix=0
+
+        # LEGACY: Everything else still goes to the monolith
+        - id: monolith-fallback
+          uri: http://localhost:9001
+          predicates:
+            - Path=/**
+          filters:
+            - StripPrefix=0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

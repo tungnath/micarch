@@ -1,0 +1,57 @@
+server:
+  port: 8304
+
+spring:
+  application:
+    name: cqrs-order-service
+
+  # Write-side: PostgreSQL (command model)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cqrs_write_db
+    username: micarch
+    password: micarch
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-if-not-exists
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Read-side: MongoDB (denormalized projection)
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: cqrs_read_db
+      username: micarch
+      password: micarch
+      authentication-database: admin
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: cqrs-projection-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.micarch.cqrs.*"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.micarch.cqrs: DEBUG

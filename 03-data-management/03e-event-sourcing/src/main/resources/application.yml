@@ -1,0 +1,45 @@
+server:
+  port: 8305
+
+spring:
+  application:
+    name: event-sourcing-axon
+
+  # JPA for Axon token store / Saga store projections
+  datasource:
+    url: jdbc:h2:mem:eventsourcing
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+# Axon Server connection
+axon:
+  axonserver:
+    servers: localhost:8124
+  serializer:
+    events: jackson
+    messages: jackson
+    general: jackson
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.micarch.eventsourcing: DEBUG
+    org.axonframework: INFO

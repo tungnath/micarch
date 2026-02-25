@@ -1,0 +1,33 @@
+server:
+  port: 8091
+
+spring:
+  application:
+    name: health-check-admin
+  boot:
+    admin:
+      server:
+        enabled: true
+      ui:
+        title: "Micarch Service Health Dashboard"
+        brand: "<img src='assets/img/icon-spring-boot-admin.svg'><span>Micarch Admin</span>"
+      notify:
+        slack:
+          enabled: false   # enable and configure webhook-url to get Slack alerts
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: false   # Admin server doesn't need to register itself
+    fetch-registry: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  level:
+    de.codecentric.boot.admin: DEBUG

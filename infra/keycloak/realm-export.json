@@ -1,0 +1,40 @@
+{
+  "realm": "micarch",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "micarch-gateway",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "micarch-gateway-secret",
+      "redirectUris": ["http://localhost:8080/*"],
+      "webOrigins": ["*"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "email": "alice@micarch.com",
+      "credentials": [{"type": "password", "value": "alice123", "temporary": false}],
+      "realmRoles": ["user", "admin"]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "email": "bob@micarch.com",
+      "credentials": [{"type": "password", "value": "bob123", "temporary": false}],
+      "realmRoles": ["user"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      {"name": "user", "description": "Standard user role"},
+      {"name": "admin", "description": "Administrator role"}
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+server:
+  port: 8602
+
+spring:
+  application:
+    name: log-aggregation-demo
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,loggers,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    com.micarch.logging: DEBUG
+    root: INFO
+  pattern:
+    # Structured JSON format for Logstash ingestion
+    console: '{"timestamp":"%d{ISO8601}","level":"%p","service":"${spring.application.name}","traceId":"%X{traceId}","spanId":"%X{spanId}","logger":"%logger{36}","message":"%msg","exception":"%ex{short}"}%n'

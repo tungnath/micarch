@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.micarch</groupId>
+    <artifactId>micarch-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>Microservices Architecture Patterns</name>
+    <description>
+        Production-grade Spring Boot multi-module project demonstrating every major
+        microservices architecture and design pattern — from decomposition to deployment.
+    </description>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-boot.version>3.3.4</spring-boot.version>
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+        <resilience4j.version>2.2.0</resilience4j.version>
+        <axon.version>4.10.0</axon.version>
+        <grpc-spring.version>3.1.0.RELEASE</grpc-spring.version>
+        <bucket4j.version>8.10.1</bucket4j.version>
+        <springdoc.version>2.6.0</springdoc.version>
+        <testcontainers.version>1.20.1</testcontainers.version>
+    </properties>
+
+    <modules>
+        <!-- GROUP 1: Decomposition -->
+        <module>01-decomposition/01a-domain-driven-decomposition</module>
+        <module>01-decomposition/01b-strangler-fig</module>
+        <module>01-decomposition/01c-bulkhead</module>
+
+        <!-- GROUP 2: Communication -->
+        <module>02-communication/02a-api-gateway</module>
+        <module>02-communication/02b-backend-for-frontend</module>
+        <module>02-communication/02c-synchronous-rest</module>
+        <module>02-communication/02d-async-messaging</module>
+        <module>02-communication/02e-grpc-service</module>
+
+        <!-- GROUP 3: Data Management -->
+        <module>03-data-management/03a-database-per-service</module>
+        <module>03-data-management/03b-saga-choreography</module>
+        <module>03-data-management/03c-saga-orchestration</module>
+        <module>03-data-management/03d-cqrs</module>
+        <module>03-data-management/03e-event-sourcing</module>
+        <module>03-data-management/03f-shared-database</module>
+
+        <!-- GROUP 4: Resilience -->
+        <module>04-resilience/04a-circuit-breaker</module>
+        <module>04-resilience/04b-retry-timeout</module>
+        <module>04-resilience/04c-rate-limiter</module>
+        <module>04-resilience/04d-sidecar</module>
+
+        <!-- GROUP 5: Discovery & Config -->
+        <module>05-discovery-config/05a-service-registry</module>
+        <module>05-discovery-config/05b-centralized-config</module>
+        <module>05-discovery-config/05c-service-mesh</module>
+
+        <!-- GROUP 6: Observability -->
+        <module>06-observability/06a-distributed-tracing</module>
+        <module>06-observability/06b-log-aggregation</module>
+        <module>06-observability/06c-health-check-aggregation</module>
+
+        <!-- GROUP 7: Security -->
+        <module>07-security/07a-oauth2-jwt</module>
+        <module>07-security/07b-api-gateway-security</module>
+
+        <!-- GROUP 8: Deployment -->
+        <module>08-deployment/08a-blue-green</module>
+        <module>08-deployment/08b-canary</module>
+        <module>08-deployment/08c-ambassador</module>
+
+        <!-- GROUP 9: Legacy / Anti-Patterns -->
+        <module>09-legacy-patterns/09a-monolith-starter</module>
+        <module>09-legacy-patterns/09b-anti-corruption-layer</module>
+        <module>09-legacy-patterns/09c-shared-kernel</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Boot BOM -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Resilience4j BOM -->
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-bom</artifactId>
+                <version>${resilience4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Axon BOM -->
+            <dependency>
+                <groupId>org.axonframework</groupId>
+                <artifactId>axon-bom</artifactId>
+                <version>${axon.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- TestContainers BOM -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- SpringDoc OpenAPI -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+            <!-- Bucket4j -->
+            <dependency>
+                <groupId>com.bucket4j</groupId>
+                <artifactId>bucket4j-core</artifactId>
+                <version>${bucket4j.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>repackage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <source>21</source>
+                        <target>21</target>
+                        <encoding>UTF-8</encoding>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

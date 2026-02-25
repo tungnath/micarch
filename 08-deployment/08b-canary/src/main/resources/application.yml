@@ -1,0 +1,47 @@
+server:
+  port: 8802
+
+spring:
+  application:
+    name: canary-router
+  cloud:
+    gateway:
+      routes:
+        # STABLE: 95% of weight (adjustable via /actuator/gateway/routes)
+        - id: stable
+          uri: http://localhost:8821
+          predicates:
+            - Path=/api/**
+            - Weight=canary-group, 95
+          filters:
+            - AddResponseHeader=X-Version, stable
+
+        # CANARY: 5% of weight (progressively increase to 100%)
+        - id: canary
+          uri: http://localhost:8822
+          predicates:
+            - Path=/api/**
+            - Weight=canary-group, 5
+          filters:
+            - AddResponseHeader=X-Version, canary
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Canary management settings (read by management controller)
+canary:
+  initial-weight: 5
+  max-weight: 100
+  error-rate-threshold: 5.0      # Rollback if canary error rate > 5%
+  step-increment: 10             # Increase canary weight by 10% each step
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

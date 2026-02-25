@@ -1,0 +1,33 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          # Local git repo holding config files
+          uri: file://${user.home}/micarch-config-repo
+          default-label: main
+          search-paths: '{application}'
+          clone-on-start: true
+      # Allow client refresh without restart
+      allow-override: true
+      override-system-properties: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,refresh,busrefresh
+
+logging:
+  level:
+    org.springframework.cloud.config: DEBUG

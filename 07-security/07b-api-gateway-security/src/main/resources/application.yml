@@ -1,0 +1,48 @@
+server:
+  port: 8702
+
+spring:
+  application:
+    name: api-gateway-security
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8180/realms/micarch/protocol/openid-connect/certs
+          issuer-uri: http://localhost:8180/realms/micarch
+
+  cloud:
+    gateway:
+      routes:
+        # Public routes — no auth required
+        - id: public-health
+          uri: http://localhost:8101
+          predicates:
+            - Path=/public/**
+
+        # Protected: requires authenticated user
+        - id: order-service
+          uri: http://localhost:8101
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - TokenRelay=
+
+        # Protected: requires ADMIN role
+        - id: admin-service
+          uri: http://localhost:9001
+          predicates:
+            - Path=/admin/**
+          filters:
+            - TokenRelay=
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.cloud.gateway: INFO

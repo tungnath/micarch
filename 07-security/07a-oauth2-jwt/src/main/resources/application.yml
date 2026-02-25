@@ -1,0 +1,33 @@
+server:
+  port: 8701
+
+spring:
+  application:
+    name: oauth2-resource-server
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keycloak JWKS endpoint for JWT signature validation
+          jwk-set-uri: http://localhost:8180/realms/micarch/protocol/openid-connect/certs
+          issuer-uri: http://localhost:8180/realms/micarch
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    oauth:
+      client-id: micarch-gateway
+      client-secret: micarch-gateway-secret
+  oAuthFlow:
+    authorizationUrl: http://localhost:8180/realms/micarch/protocol/openid-connect/auth
+    tokenUrl: http://localhost:8180/realms/micarch/protocol/openid-connect/token
+
+logging:
+  level:
+    org.springframework.security: DEBUG

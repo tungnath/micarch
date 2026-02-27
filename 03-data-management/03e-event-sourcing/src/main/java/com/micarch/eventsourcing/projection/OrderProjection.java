@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
-import com.micarch.eventsourcing.events.OrderEvents.*;
 import com.micarch.eventsourcing.events.OrderEvents.OrderCancelledEvent;
 import com.micarch.eventsourcing.events.OrderEvents.OrderConfirmedEvent;
 import com.micarch.eventsourcing.events.OrderEvents.OrderPlacedEvent;

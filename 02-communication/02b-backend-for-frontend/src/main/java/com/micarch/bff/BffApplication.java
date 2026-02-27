@@ -1,4 +1,4 @@
-﻿package com.micarch.bff;
+package com.micarch.bff;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

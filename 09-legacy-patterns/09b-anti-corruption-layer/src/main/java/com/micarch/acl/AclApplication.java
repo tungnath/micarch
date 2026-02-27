@@ -1,4 +1,4 @@
-﻿package com.micarch.acl;
+package com.micarch.acl;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

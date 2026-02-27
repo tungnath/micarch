@@ -1,4 +1,4 @@
-﻿package com.micarch.ratelimiter;
+package com.micarch.ratelimiter;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

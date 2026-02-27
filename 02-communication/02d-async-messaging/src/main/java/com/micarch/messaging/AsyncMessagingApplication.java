@@ -1,4 +1,4 @@
-﻿package com.micarch.messaging;
+package com.micarch.messaging;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

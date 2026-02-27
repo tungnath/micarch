@@ -1,4 +1,4 @@
-﻿package com.micarch.health;
+package com.micarch.health;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

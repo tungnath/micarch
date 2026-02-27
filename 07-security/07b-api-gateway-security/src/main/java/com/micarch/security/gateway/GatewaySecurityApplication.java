@@ -1,4 +1,4 @@
-﻿package com.micarch.security.gateway;
+package com.micarch.security.gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

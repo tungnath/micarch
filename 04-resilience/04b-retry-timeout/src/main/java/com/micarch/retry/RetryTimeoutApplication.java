@@ -1,4 +1,4 @@
-﻿package com.micarch.retry;
+package com.micarch.retry;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

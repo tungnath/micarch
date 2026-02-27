@@ -1,4 +1,4 @@
-﻿package com.micarch.grpc;
+package com.micarch.grpc;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

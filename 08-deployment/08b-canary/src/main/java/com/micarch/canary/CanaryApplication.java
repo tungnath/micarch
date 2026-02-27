@@ -1,4 +1,4 @@
-﻿package com.micarch.canary;
+package com.micarch.canary;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -10,11 +10,9 @@ import org.axonframework.spring.stereotype.Aggregate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.micarch.eventsourcing.command.OrderCommands.*;
 import com.micarch.eventsourcing.command.OrderCommands.CancelOrderCommand;
 import com.micarch.eventsourcing.command.OrderCommands.ConfirmOrderCommand;
 import com.micarch.eventsourcing.command.OrderCommands.PlaceOrderCommand;
-import com.micarch.eventsourcing.events.OrderEvents.*;
 import com.micarch.eventsourcing.events.OrderEvents.OrderCancelledEvent;
 import com.micarch.eventsourcing.events.OrderEvents.OrderConfirmedEvent;
 import com.micarch.eventsourcing.events.OrderEvents.OrderPlacedEvent;

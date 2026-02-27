@@ -1,4 +1,4 @@
-﻿package com.micarch.monolith;
+package com.micarch.monolith;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

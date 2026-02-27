@@ -20,8 +20,8 @@ import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.context.TestPropertySource;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -63,13 +63,13 @@ class SagaChoreographyIntegrationTest {
 
         // Act — publish OrderCreatedEvent
         OrderCreatedEvent event = new OrderCreatedEvent(
-                "ORD-001", "CUST-1", "PROD-1", 5, new BigDecimal("49.99")
+                "SAGA-001", "ORD-001", "CUST-1", "PROD-1", 5, new BigDecimal("49.99")
         );
         template.send("order-events", "ORD-001", event);
 
         // Assert — consumer receives the event
         ConsumerRecord<String, OrderCreatedEvent> received
-                = KafkaTestUtils.getSingleRecord(consumer, "order-events", 5000);
+                = KafkaTestUtils.getSingleRecord(consumer, "order-events", Duration.ofMillis(5000));
 
         assertThat(received).isNotNull();
         assertThat(received.key()).isEqualTo("ORD-001");

@@ -1,0 +1,75 @@
+version: '3.9'
+
+# Project-specific infrastructure for 01a-domain-driven-decomposition
+# Ports are offset to avoid clashing with root docker-compose.yml
+
+services:
+
+  # ─────────────────────────── DATABASE ─────────────────────────────
+  ddd-postgres:
+    image: postgres:16-alpine
+    container_name: ddd-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ddd
+      POSTGRES_PASSWORD: ddd
+      POSTGRES_DB: ddd_ecommerce
+    volumes:
+      - ddd_postgres_data:/var/lib/postgresql/data
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks: [ddd-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ddd -d ddd_ecommerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────── MESSAGING ────────────────────────────
+  ddd-zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: ddd-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks: [ddd-net]
+
+  ddd-kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: ddd-kafka
+    depends_on: [ddd-zookeeper]
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: ddd-zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://ddd-kafka:29092,EXTERNAL://localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks: [ddd-net]
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9093"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  ddd-kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: ddd-kafka-ui
+    depends_on: [ddd-kafka]
+    ports:
+      - "9094:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ddd-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ddd-kafka:29092
+    networks: [ddd-net]
+
+networks:
+  ddd-net:
+    driver: bridge
+
+volumes:
+  ddd_postgres_data:

@@ -1,26 +1,20 @@
 package com.micarch.ddd.order.controller;
 
+import com.micarch.ddd.order.domain.Order;
+import com.micarch.ddd.order.domain.OrderLineItem;
+import com.micarch.ddd.order.domain.ShippingAddress;
+import com.micarch.ddd.order.service.OrderService;
+import com.micarch.ddd.shared.vo.Money;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.micarch.ddd.order.domain.Order;
-import com.micarch.ddd.order.service.OrderService;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-
 /**
- * REST controller for the Order bounded context. Only exposes Order domain
+ * REST controller for the Order bounded context. Exposes ONLY Order domain
  * concepts — no cross-context leakage.
  */
 @RestController
@@ -36,9 +30,25 @@ public class OrderController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Place a new order", description = "Creates order and publishes OrderPlacedEvent to Kafka")
+    @Operation(summary = "Place a new order",
+            description = "Creates order with line items and publishes OrderPlacedEvent to Kafka")
     public Order placeOrder(@RequestBody PlaceOrderRequest req) {
-        return orderService.placeOrder(req.customerId(), req.productId(), req.quantity(), req.unitPrice());
+        var lineItems = req.items().stream()
+                .map(item -> new OrderLineItem(
+                item.productId(),
+                item.productName(),
+                item.quantity(),
+                Money.inr(item.unitPrice())))
+                .toList();
+
+        var address = new ShippingAddress(
+                req.shippingAddress().street(),
+                req.shippingAddress().city(),
+                req.shippingAddress().state(),
+                req.shippingAddress().zipCode(),
+                req.shippingAddress().country());
+
+        return orderService.placeOrder(req.customerId(), lineItems, address);
     }
 
     @GetMapping
@@ -49,23 +59,41 @@ public class OrderController {
 
     @GetMapping("/{orderId}")
     @Operation(summary = "Get order by ID")
-    public Order getOrder(@PathVariable String orderId) {
+    public Order getOrder(@PathVariable("orderId") String orderId) {
         return orderService.findById(orderId);
     }
 
-    @PutMapping("/{orderId}/confirm")
-    @Operation(summary = "Confirm a pending order")
-    public Order confirmOrder(@PathVariable String orderId) {
-        return orderService.confirmOrder(orderId);
-    }
-
     @PutMapping("/{orderId}/cancel")
-    @Operation(summary = "Cancel an order")
-    public Order cancelOrder(@PathVariable String orderId) {
+    @Operation(summary = "Cancel an order", description = "Publishes OrderCancelledEvent for stock release")
+    public Order cancelOrder(@PathVariable("orderId") String orderId) {
         return orderService.cancelOrder(orderId);
     }
 
-    // Request DTO — lives in the controller, not the domain
-    public record PlaceOrderRequest(String customerId, String productId, int quantity, BigDecimal unitPrice) {
+    // ── Request DTOs — live in the controller layer, NOT in the domain ──
+    public record PlaceOrderRequest(
+            String customerId,
+            List<LineItemRequest> items,
+            AddressRequest shippingAddress
+            ) {
+
+    }
+
+    public record LineItemRequest(
+            String productId,
+            String productName,
+            int quantity,
+            BigDecimal unitPrice
+            ) {
+
+    }
+
+    public record AddressRequest(
+            String street,
+            String city,
+            String state,
+            String zipCode,
+            String country
+            ) {
+
     }
 }

@@ -99,8 +99,7 @@ public class OrderService {
     /**
      * Payment was captured successfully → confirm the order.
      */
-    @KafkaListener(topics = "payment-events", groupId = "order-context",
-            properties = "spring.json.value.default.type=com.micarch.ddd.payment.event.PaymentCapturedEvent")
+    @KafkaListener(topics = "payment-events", groupId = "order-context")
     public void onPaymentCaptured(PaymentCapturedEvent event) {
         log.info("💳 Received PaymentCapturedEvent for order: {}", event.orderId());
         try {
@@ -120,8 +119,7 @@ public class OrderService {
     /**
      * Payment failed → cancel the order.
      */
-    @KafkaListener(topics = "payment-events", groupId = "order-payment-fail",
-            properties = "spring.json.value.default.type=com.micarch.ddd.payment.event.PaymentFailedEvent")
+    @KafkaListener(topics = "payment-events", groupId = "order-payment-fail")
     public void onPaymentFailed(PaymentFailedEvent event) {
         log.info("💳❌ Received PaymentFailedEvent for order: {}", event.orderId());
         try {
@@ -134,8 +132,7 @@ public class OrderService {
     /**
      * Stock reservation failed → cancel the order.
      */
-    @KafkaListener(topics = "inventory-events", groupId = "order-stock-fail",
-            properties = "spring.json.value.default.type=com.micarch.ddd.inventory.event.StockReservationFailedEvent")
+    @KafkaListener(topics = "inventory-events", groupId = "order-stock-fail")
     public void onStockReservationFailed(StockReservationFailedEvent event) {
         log.info("📦❌ Received StockReservationFailedEvent for order: {}", event.orderId());
         try {

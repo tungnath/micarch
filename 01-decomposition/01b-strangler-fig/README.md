@@ -1,67 +1,134 @@
-# 01b — Strangler Fig Pattern
+# 01B — Strangler Fig
 
-## What is it?
+The Strangler Fig pattern migrates a legacy application incrementally. A gateway is placed in front of the monolith, then individual routes are redirected to replacement services while all remaining traffic continues to use the legacy application.
 
-The **Strangler Fig** pattern is a migration strategy to incrementally replace a monolith with microservices — route by route, without a "big bang" rewrite.
-
-## Architecture
+## Routing model
 
 ```mermaid
 graph LR
-    Client --> Gateway[API Gateway / Router :8102]
-    Gateway -->|"NEW /api/orders/**"| NewService[Order Microservice :8101]
-    Gateway -->|"LEGACY /**"| Monolith[Legacy Monolith :9001]
-    style NewService fill:#22c55e,color:#fff
-    style Monolith fill:#ef4444,color:#fff
-    style Gateway fill:#3b82f6,color:#fff
+    Client((Client)) --> Gateway[Strangler Gateway :8102]
+    Gateway -->|/api/orders/**| New[New Order Service :8101]
+    Gateway -->|other /api/**| Legacy[Legacy Monolith :9001]
 ```
 
-## Migration Phases
+The migrated order route is evaluated first. The fallback route handles the remaining `/api/**` traffic. Management endpoints stay local to the gateway.
 
-| Phase | What Happens |
-|-------|-------------|
-| 1. Add router | Gateway intercepts all traffic in front of monolith |
-| 2. Extract route | Build `OrderService`, route `/api/orders/**` to it |
-| 3. Validate | Run both in parallel; compare responses |
-| 4. Strangle | Route more paths from monolith to new services |
-| 5. Kill monolith | When 100% traffic migrated, decommission monolith |
+## Request routing flow
 
-## Running the Demo
-
-```bash
-# Start the router (acts as a strangler proxy)
-cd 01-decomposition/01b-strangler-fig
-mvn spring-boot:run
-
-# Observe routing in logs:
-# X-Version: green → routes to new Order Service
-# Everything else → routes to Monolith
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Gateway
+    participant NewService as New Order Service
+    participant Monolith as Legacy Monolith
+    Client->>Gateway: POST /api/orders
+    Gateway->>NewService: Rewrite /__strangler/new/orders
+    NewService-->>Gateway: Order response
+    Gateway-->>Client: Response
+    Client->>Gateway: GET /api/customers/{id}
+    Gateway->>Monolith: Rewrite /__strangler/legacy
+    Monolith-->>Gateway: Legacy response
+    Gateway-->>Client: Response
 ```
 
-## Key Config (`application.yml`)
+## Default configuration
+
+By default the gateway forwards to independently running applications:
 
 ```yaml
-spring.cloud.gateway.routes:
-  - id: orders-new
-    uri: http://localhost:8101      # New microservice
-    predicates: [Path=/api/orders/**]
-  - id: monolith-fallback
-    uri: http://localhost:9001      # Legacy monolith
-    predicates: [Path=/**]          # Catches all remaining paths
+strangler:
+  routes:
+    new-service-uri: http://localhost:8101
+    legacy-service-uri: http://localhost:9001
 ```
 
-## ✅ Pros
-- No big-bang rewrite
-- Team can work iteratively
-- Easy rollback (just change routes)
-- Each service can use different stack
+The gateway preserves the public API contract and rewrites the downstream path to `/__strangler/new/**` or `/__strangler/legacy/**`. The downstream applications can translate those internal paths to their own controllers.
 
-## ❌ Cons
-- Dual-maintenance period increases cost
-- Data synchronization complexity grows
-- Network hop added for every request
+## Configuration
 
-## When to Use
-- Migrating a large legacy system where full rewrite is too risky
-- Team lacks capacity for simultaneous full rewrite
-- Need to release value early during migration
+The defaults are defined in [`src/main/resources/application.yml`](src/main/resources/application.yml):
+
+| Setting | Default |
+|---|---|
+| Gateway port | `8102` |
+| New service URI | `http://localhost:8101` |
+| Legacy monolith URI | `http://localhost:9001` |
+| Migrated route | `/api/orders/**` |
+| Fallback route | `/api/**` |
+
+Override downstream locations without changing the application:
+
+```bash
+mvn spring-boot:run "-Dspring-boot.run.arguments=--strangler.routes.new-service-uri=http://localhost:8201,--strangler.routes.legacy-service-uri=http://localhost:9201"
+```
+
+The `demo` profile replaces external downstreams with in-process demo controllers.
+
+## Self-contained demo
+
+The `demo` profile provides small in-process downstreams. This makes the routing behavior executable without starting a separate monolith and replacement service:
+
+```bash
+cd 01-decomposition/01b-strangler-fig
+mvn spring-boot:run -Dspring-boot.run.profiles=demo
+```
+
+```bash
+curl -X POST http://localhost:8102/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{"customerId":"CUST-1"}'
+
+curl http://localhost:8102/api/customers/CUST-1
+```
+
+The first response contains `"handledBy":"NEW_SERVICE"`; the second contains `"handledBy":"LEGACY_MONOLITH"`.
+
+## Tests
+
+```bash
+mvn test
+```
+
+The integration tests run the gateway with the `demo` profile and verify both route branches through `WebTestClient`.
+
+## Build and run
+
+Build and test from this module directory:
+
+```bash
+mvn clean verify
+```
+
+Run with independently deployed downstream applications:
+
+```bash
+mvn spring-boot:run
+```
+
+Run the self-contained demo:
+
+```bash
+mvn spring-boot:run "-Dspring-boot.run.profiles=demo"
+```
+
+## Migration phases
+
+1. Put the gateway in front of the monolith.
+2. Extract one capability, such as orders.
+3. Route only that capability to the new service.
+4. Compare behavior and migrate additional routes.
+5. Remove the legacy route after the final capability has moved.
+
+```mermaid
+stateDiagram-v2
+    [*] --> LegacyOnly
+    LegacyOnly --> GatewayWithFallback: Introduce gateway
+    GatewayWithFallback --> PartialMigration: Redirect one route
+    PartialMigration --> PartialMigration: Migrate and validate more routes
+    PartialMigration --> NewServicesOnly: Remove legacy fallback
+    NewServicesOnly --> [*]
+```
+
+## Trade-offs
+
+The pattern enables incremental delivery and quick rollback, but temporarily requires two systems, route ownership discipline, and potentially duplicated data. The gateway should remain a migration boundary rather than becoming a second monolith.

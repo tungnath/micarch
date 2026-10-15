@@ -9,19 +9,24 @@ spring:
       routes:
         # NEW: Migrated /api/orders/** → new Order microservice
         - id: orders-new
-          uri: http://localhost:8101
+          uri: ${strangler.routes.new-service-uri:http://localhost:8101}
           predicates:
             - Path=/api/orders/**
           filters:
-            - StripPrefix=0
+            - RewritePath=/api/orders(?<segment>/?.*), /__strangler/new/orders${segment}
 
-        # LEGACY: Everything else still goes to the monolith
+        # LEGACY: Unmigrated API traffic still goes to the monolith
         - id: monolith-fallback
-          uri: http://localhost:9001
+          uri: ${strangler.routes.legacy-service-uri:http://localhost:9001}
           predicates:
-            - Path=/**
+            - Path=/api/**
           filters:
-            - StripPrefix=0
+            - RewritePath=/api(?<segment>/?.*), /__strangler/legacy${segment}
+
+strangler:
+  routes:
+    new-service-uri: http://localhost:8101
+    legacy-service-uri: http://localhost:9001
 
 management:
   endpoints:
@@ -32,3 +37,31 @@ management:
 logging:
   level:
     org.springframework.cloud.gateway: DEBUG
+
+---
+
+# The demo profile keeps both downstreams in this application so the routing
+# behavior can be exercised without starting a separate monolith and service.
+spring:
+  config:
+    activate:
+      on-profile: demo
+
+  cloud:
+    gateway:
+      routes:
+        # Forward routes use fixed in-process targets in the demo profile.
+        # Production routes above use external services plus RewritePath.
+        - id: orders-new-demo
+          uri: forward:/__strangler/new/orders
+          predicates:
+            - Path=/api/orders
+        - id: monolith-fallback-demo
+          uri: forward:/__strangler/legacy
+          predicates:
+            - Path=/api/**
+
+strangler:
+  routes:
+    new-service-uri: forward:/__strangler/new
+    legacy-service-uri: forward:/__strangler/legacy

@@ -27,20 +27,20 @@ public class DataSeeder implements ApplicationRunner {
         log.info("🌱 Seeding sample inventory data...");
 
         // Electronics
-        inventoryService.addInventory("LAPTOP-001", "MacBook Pro 14 M3", 50);
-        inventoryService.addInventory("LAPTOP-002", "Dell XPS 15", 35);
-        inventoryService.addInventory("PHONE-001", "iPhone 15 Pro", 100);
-        inventoryService.addInventory("PHONE-002", "Samsung Galaxy S24 Ultra", 80);
+        inventoryService.seedInventory("LAPTOP-001", "MacBook Pro 14 M3", 50);
+        inventoryService.seedInventory("LAPTOP-002", "Dell XPS 15", 35);
+        inventoryService.seedInventory("PHONE-001", "iPhone 15 Pro", 100);
+        inventoryService.seedInventory("PHONE-002", "Samsung Galaxy S24 Ultra", 80);
 
         // Accessories
-        inventoryService.addInventory("MOUSE-001", "Logitech MX Master 3S", 200);
-        inventoryService.addInventory("KEYBOARD-001", "Keychron K2 Pro", 150);
-        inventoryService.addInventory("HEADPHONE-001", "Sony WH-1000XM5", 75);
-        inventoryService.addInventory("CHARGER-001", "Anker 65W GaN Charger", 300);
+        inventoryService.seedInventory("MOUSE-001", "Logitech MX Master 3S", 200);
+        inventoryService.seedInventory("KEYBOARD-001", "Keychron K2 Pro", 150);
+        inventoryService.seedInventory("HEADPHONE-001", "Sony WH-1000XM5", 75);
+        inventoryService.seedInventory("CHARGER-001", "Anker 65W GaN Charger", 300);
 
         // Wearables
-        inventoryService.addInventory("WATCH-001", "Apple Watch Series 9", 60);
-        inventoryService.addInventory("WATCH-002", "Samsung Galaxy Watch 6", 45);
+        inventoryService.seedInventory("WATCH-001", "Apple Watch Series 9", 60);
+        inventoryService.seedInventory("WATCH-002", "Samsung Galaxy Watch 6", 45);
 
         log.info("✅ Sample inventory seeded — {} items", 10);
     }

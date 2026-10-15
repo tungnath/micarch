@@ -29,6 +29,8 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
     consumer:
       group-id: ddd-ecommerce
       auto-offset-reset: earliest
@@ -36,6 +38,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: com.micarch.ddd.*
+        spring.json.use.type.headers: true
 
 # ── Actuator ────────────────────────────────────────────────────────
 management:

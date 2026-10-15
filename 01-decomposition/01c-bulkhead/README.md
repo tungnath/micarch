@@ -1,66 +1,133 @@
-# 01c — Bulkhead Pattern
+# 01C — Bulkhead
 
-## What is it?
-
-The **Bulkhead** pattern isolates different parts of a system so that a failure in one component does not cascade to others. Named after ship hull compartments.
+The Bulkhead pattern partitions concurrency so an overloaded or slow operation cannot consume every worker available to the application. This module demonstrates both Resilience4j bulkhead types.
 
 ## Architecture
 
 ```mermaid
 graph TD
-    A[Incoming Requests] --> B{Bulkhead Router}
-    B -->|"max 5 concurrent"| C[Order Service Bulkhead]
-    B -->|"max 3 concurrent"| D[Payment Service Bulkhead]
-    B -->|"Thread pool size 4"| E[Inventory Service Thread Pool]
-    C -->|Overflow: RejectedExecutionException| F[Fallback Response]
-    D -->|Overflow: 429 Too Many Requests| F
-    E -->|Queue full: BulkheadFullException| F
+    Client((Client)) --> API[Bulkhead API :8103]
+    API -->|semaphore max 5| Orders[Order work]
+    API -->|semaphore max 3| Payments[Payment work]
+    API -->|dedicated pool: 2 core / 4 max / 10 queue| Inventory[Inventory work]
+    Orders -->|overflow| OrderReject[429]
+    Payments -->|overflow| PaymentReject[429]
+    Inventory -->|queue overflow| InventoryReject[503]
 ```
 
-## Two Types of Bulkheads
+## Isolation behavior
 
-| Type | Implementation | Use Case |
-|------|---------------|----------|
-| **Semaphore** | `maxConcurrentCalls` | Limits concurrent callers in same thread |
-| **Thread Pool** | `coreThreadPoolSize + queue` | Isolates each service in its own thread pool |
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant OrderPool as Order semaphore
+    participant InventoryPool as Inventory thread pool
+    Client->>API: Concurrent order requests
+    API->>OrderPool: Acquire permit
+    alt Permit available
+        OrderPool-->>API: Execute work
+        API-->>Client: 200 COMPLETED
+    else Permit unavailable
+        OrderPool-->>API: Reject immediately
+        API-->>Client: 429 REJECTED
+    end
+    Client->>API: Inventory request
+    API->>InventoryPool: Submit to dedicated executor
+    InventoryPool-->>API: Execute independently of order permits
+    API-->>Client: 200 or 503
+```
+
+## Endpoints
+
+Each endpoint accepts `delayMs` to make contention easy to observe. The value is capped at 30 seconds.
+
+| Method | Endpoint | Bulkhead | Rejection |
+|---|---|---|---|
+| GET | `/api/bulkheads/orders/{orderId}` | Semaphore, max 5 concurrent calls | HTTP 429 |
+| GET | `/api/bulkheads/payments/{paymentId}` | Semaphore, max 3 concurrent calls | HTTP 429 |
+| GET | `/api/bulkheads/inventory/{sku}` | Dedicated thread pool, queue capacity 10 | HTTP 503 |
+
+Example:
+
+```bash
+curl "http://localhost:8103/api/bulkheads/orders/order-1?delayMs=1000"
+curl "http://localhost:8103/api/bulkheads/inventory/SKU-1?delayMs=1000"
+```
+
+Successful responses report the worker thread. Inventory work runs on the Resilience4j executor, making the isolation boundary visible in the response and logs. Rejected responses contain `status: REJECTED` and an explanatory message.
 
 ## Configuration
 
-```yaml
-resilience4j:
-  bulkhead:
-    instances:
-      orderService:
-        maxConcurrentCalls: 5       # Only 5 simultaneous calls allowed
-        maxWaitDuration: 500ms       # Wait 500ms before rejecting
-  thread-pool-bulkhead:
-    instances:
-      inventoryService:
-        maxThreadPoolSize: 4
-        coreThreadPoolSize: 2
-        queueCapacity: 10
+The defaults are defined in [`src/main/resources/application.yml`](src/main/resources/application.yml):
+
+| Setting | Default |
+|---|---|
+| Application port | `8103` |
+| Order semaphore | 5 concurrent calls, 500 ms wait |
+| Payment semaphore | 3 concurrent calls, 100 ms wait |
+| Inventory pool | 2 core / 4 maximum threads |
+| Inventory queue | 10 requests |
+| Maximum simulated delay | 30 seconds |
+
+Resilience4j limits can be changed in the YAML configuration. Request-level delays are supplied with the `delayMs` query parameter and are validated by the application.
+
+## Build
+
+From this module directory:
+
+```bash
+mvn clean verify
 ```
 
-## Running the Demo
+From the repository root:
+
+```bash
+mvn -pl 01-decomposition/01c-bulkhead clean verify
+```
+
+## Run and observe
 
 ```bash
 cd 01-decomposition/01c-bulkhead
 mvn spring-boot:run
-
-# Load test: send 20 concurrent requests
-# Watch as excess requests get 503/fallback immediately
 ```
 
-## ✅ Pros
-- Fault isolation prevents cascading failures
-- Resources shared fairly between services
-- Independent circuit breaking per service
+From the repository root, run directly with:
 
-## ❌ Cons
-- Thread pool bulkheads consume extra threads
-- Tuning concurrency limits is difficult
-- Fallbacks must be well-designed to be meaningful
+```bash
+mvn -pl 01-decomposition/01c-bulkhead spring-boot:run
+```
 
-## When to Use
-- High traffic services where one slow downstream kills everything
-- Shared thread pools need protection from noisy-neighbour services
+- Swagger UI: <http://localhost:8103/swagger-ui.html>
+- Health: <http://localhost:8103/actuator/health>
+- Metrics: <http://localhost:8103/actuator/metrics>
+
+Generate concurrent requests with PowerShell:
+
+```powershell
+1..12 | ForEach-Object -Parallel {
+  Invoke-WebRequest "http://localhost:8103/api/bulkheads/orders/order-$_?delayMs=2000"
+}
+```
+
+Run the automated tests with:
+
+```bash
+mvn test
+```
+
+## Trade-offs
+
+Bulkheads protect critical work and provide predictable failure under load, but reduce the amount of concurrency available to each partition. Limits, queue sizes, and fallbacks must be selected from capacity measurements rather than copied blindly between services.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Accepted
+    Accepted --> Running: Permit or queue slot available
+    Accepted --> Rejected: Capacity exhausted
+    Running --> Completed: Work finishes
+    Rejected --> Fallback: Return bounded failure
+    Completed --> [*]
+    Fallback --> [*]
+```

@@ -12,10 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Random;
 
@@ -36,11 +36,17 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final Random random = new Random();
+    private final double successRate;
 
     public PaymentService(PaymentRepository paymentRepository,
-                          KafkaTemplate<String, Object> kafkaTemplate) {
+                          KafkaTemplate<String, Object> kafkaTemplate,
+                          @Value("${ddd.payment.success-rate:0.9}") double successRate) {
         this.paymentRepository = paymentRepository;
         this.kafkaTemplate = kafkaTemplate;
+        if (successRate < 0 || successRate > 1) {
+            throw new IllegalArgumentException("Payment success rate must be between 0 and 1");
+        }
+        this.successRate = successRate;
     }
 
     // ── Queries ──────────────────────────────────────────────────────
@@ -67,22 +73,20 @@ public class PaymentService {
      * StockReservedEvent → initiate and process payment.
      * Simulates payment capture with 90% success rate for demo purposes.
      */
-    @KafkaListener(topics = "inventory-events", groupId = "payment-context",
-            properties = "spring.json.value.default.type=com.micarch.ddd.inventory.event.StockReservedEvent")
+    @KafkaListener(topics = "inventory-events", groupId = "payment-context")
     @Transactional
     public void onStockReserved(StockReservedEvent event) {
         log.info("💳 Received StockReservedEvent for order: {}", event.orderId());
 
-        // In a real system, the amount would come from the event or be looked up.
-        // Here we simulate by creating a payment with a placeholder amount.
         var payment = Payment.initiate(
                 event.orderId(),
-                Money.inr(BigDecimal.ZERO),  // Amount will be set from order context in real impl
+                new Money(event.totalAmount(), event.currency()),
                 PaymentMethod.upi()           // Default to UPI for demo
         );
 
-        // Simulate payment gateway processing (90% success)
-        boolean paymentSuccessful = random.nextInt(100) < 90;
+        // Simulate payment gateway processing. The rate is configurable so tests
+        // can exercise both the happy path and compensation path deterministically.
+        boolean paymentSuccessful = random.nextDouble() < successRate;
 
         if (paymentSuccessful) {
             payment.capture();

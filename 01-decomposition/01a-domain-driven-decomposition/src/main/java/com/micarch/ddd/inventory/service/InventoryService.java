@@ -9,6 +9,7 @@ import com.micarch.ddd.inventory.repository.InventoryRepository;
 import com.micarch.ddd.inventory.repository.StockReservationRepository;
 import com.micarch.ddd.order.event.OrderCancelledEvent;
 import com.micarch.ddd.order.event.OrderPlacedEvent;
+import com.micarch.ddd.payment.event.PaymentCapturedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -59,6 +60,20 @@ public class InventoryService {
         return item;
     }
 
+    /**
+     * Adds demo data only when the SKU does not exist. This keeps application
+     * restarts from silently increasing stock.
+     */
+    @Transactional
+    public InventoryItem seedInventory(String sku, String productName, int stock) {
+        return inventoryRepository.findBySku(sku)
+                .orElseGet(() -> {
+                    var item = InventoryItem.create(sku, productName, stock);
+                    inventoryRepository.save(item);
+                    return item;
+                });
+    }
+
     @Transactional(readOnly = true)
     public List<InventoryItem> findAll() {
         return inventoryRepository.findAll();
@@ -76,8 +91,7 @@ public class InventoryService {
      * reserved → publish StockReservedEvent. If ANY item fails → publish
      * StockReservationFailedEvent.
      */
-    @KafkaListener(topics = "order-events", groupId = "inventory-context",
-            properties = "spring.json.value.default.type=com.micarch.ddd.order.event.OrderPlacedEvent")
+    @KafkaListener(topics = "order-events", groupId = "inventory-context")
     @Transactional
     public void onOrderPlaced(OrderPlacedEvent event) {
         log.info("📦 Received OrderPlacedEvent for order: {}", event.orderId());
@@ -101,7 +115,11 @@ public class InventoryService {
 
             // All items reserved successfully
             kafkaTemplate.send(INVENTORY_TOPIC, event.orderId(),
-                    new StockReservedEvent(event.orderId(), "All items reserved successfully"));
+                    new StockReservedEvent(
+                            event.orderId(),
+                            event.totalAmount(),
+                            event.currency(),
+                            "All items reserved successfully"));
 
             log.info("✅ Stock reserved for order: {}", event.orderId());
 
@@ -119,12 +137,31 @@ public class InventoryService {
     /**
      * OrderCancelledEvent → release all reserved stock for this order.
      */
-    @KafkaListener(topics = "order-events", groupId = "inventory-cancel",
-            properties = "spring.json.value.default.type=com.micarch.ddd.order.event.OrderCancelledEvent")
+    @KafkaListener(topics = "order-events", groupId = "inventory-cancel")
     @Transactional
     public void onOrderCancelled(OrderCancelledEvent event) {
         log.info("📦 Received OrderCancelledEvent for order: {}", event.orderId());
         releaseReservationsForOrder(event.orderId());
+    }
+
+    /**
+     * PaymentCapturedEvent is the commit signal for a reservation. Once the
+     * payment context succeeds, reserved units become permanently consumed.
+     */
+    @KafkaListener(topics = "payment-events", groupId = "inventory-payment-capture")
+    @Transactional
+    public void onPaymentCaptured(PaymentCapturedEvent event) {
+        log.info("📦 Received PaymentCapturedEvent for order: {}", event.orderId());
+
+        var reservations = reservationRepository.findByOrderIdAndStatus(
+                event.orderId(), StockReservation.ReservationStatus.RESERVED);
+        for (var reservation : reservations) {
+            var inventoryItem = inventoryRepository.findBySku(reservation.getSku()).orElseThrow();
+            inventoryItem.confirmReduction(reservation.getQuantity());
+            reservation.confirm();
+            inventoryRepository.save(inventoryItem);
+            reservationRepository.save(reservation);
+        }
     }
 
     // ── Private helpers ─────────────────────────────────────────────

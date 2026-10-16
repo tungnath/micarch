@@ -51,6 +51,11 @@ management:
       show-details: always
 
 # ── Swagger / OpenAPI ───────────────────────────────────────────────
+ddd:
+  payment:
+    # Simulated payment success probability. Override with 0.0 or 1.0 for deterministic flows.
+    success-rate: 0.9
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

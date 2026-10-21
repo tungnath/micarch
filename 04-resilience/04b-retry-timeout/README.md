@@ -4,6 +4,14 @@
 
 Demonstrates **Resilience4j Retry** with exponential backoff + jitter, and **TimeLimiter** to prevent runaway requests from consuming resources indefinitely.
 
+```mermaid
+sequenceDiagram
+    Caller->>Target: attempt 1
+    Target-->>Caller: transient failure
+    Caller->>Target: retry with backoff
+    Target-->>Caller: success or timeout
+```
+
 ## How Retry Works
 
 ```
@@ -67,3 +75,14 @@ mvn spring-boot:run
 - Calling external services that occasionally have transient errors
 - Network-dependent operations (DB, external APIs)
 - Any async operation that could block indefinitely
+
+## Configuration, Build, and Run
+
+Retry and timeout instances are configured in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 04-resilience/04b-retry-timeout
+mvn spring-boot:run -pl 04-resilience/04b-retry-timeout
+```
+
+Call `GET /api/reliable/{key}` and inspect `/actuator/health`.

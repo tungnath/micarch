@@ -87,6 +87,17 @@ open http://localhost:8090
 
 ## When to Use
 
+## Configuration, Build, and Run
+
+Kafka is configured under `spring.kafka` in `src/main/resources/application.yml`; tests replace it with an embedded broker.
+
+```bash
+mvn test -pl 03-data-management/03b-saga-choreography
+mvn spring-boot:run -pl 03-data-management/03b-saga-choreography
+```
+
+Health is `/actuator/health`; the event topics are `order-events`, `stock-events`, and `stock-failed-events`.
+
 ✅ Highly decoupled microservices with event-driven architecture  
 ✅ Long-running business processes (order fulfillment, trip booking)  
 ✅ When adding new participants should not require changes to existing services  

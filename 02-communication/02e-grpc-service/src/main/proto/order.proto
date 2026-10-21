@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package com.micarch.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.micarch.grpc.api";
+option java_outer_classname = "OrderProto";
+
+service OrderService {
+  rpc PlaceOrder (PlaceOrderRequest) returns (PlaceOrderResponse);
+  rpc GetOrder (GetOrderRequest) returns (OrderResponse);
+  rpc ListOrders (ListOrdersRequest) returns (stream OrderResponse);
+}
+
+message PlaceOrderRequest {
+  string customer_id = 1;
+  string product_id = 2;
+  int32 quantity = 3;
+  double unit_price = 4;
+}
+
+message PlaceOrderResponse {
+  string order_id = 1;
+  string status = 2;
+}
+
+message GetOrderRequest {
+  string order_id = 1;
+}
+
+message ListOrdersRequest {
+  string customer_id = 1;
+}
+
+message OrderResponse {
+  string order_id = 1;
+  string customer_id = 2;
+  string product_id = 3;
+  int32 quantity = 4;
+  double unit_price = 5;
+  string status = 6;
+}

@@ -1,0 +1,10 @@
+.git
+.gitignore
+.vscode
+.idea
+**/target
+**/.classpath
+**/.project
+**/.settings
+README.md
+mic_arch_implementation_plan.md

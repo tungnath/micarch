@@ -104,6 +104,15 @@ resilience4j:
 
 ## When to Use
 
+## Configuration, Build, and Run
+
+Resilience4j settings are in `src/main/resources/application.yml` and the downstream demo profile is in `application-payment-target.yml`.
+
+```bash
+mvn test -pl 04-resilience/04a-circuit-breaker
+mvn spring-boot:run -pl 04-resilience/04a-circuit-breaker
+```
+
 ✅ Any synchronous HTTP call to an external or downstream service  
 ✅ When downstream SLA is unreliable  
 ✅ Combined with Retry (call Retry first, then CB as outer wrapper)  

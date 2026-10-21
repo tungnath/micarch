@@ -1,0 +1,368 @@
+# Application containers for modules 02-09.
+#
+# Start shared infrastructure plus all application examples with:
+#   docker compose -f docker-compose.yml -f docker-compose.modules.yml --profile apps up -d --build
+#
+# The root compose file remains usable on its own for infrastructure-only work.
+
+x-app: &app
+  profiles: [apps]
+  restart: unless-stopped
+  networks: [micarch]
+
+x-eureka: &eureka
+  EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+
+x-kafka: &kafka
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+
+x-docker-hosts: &docker-hosts
+  SPRING_DATA_REDIS_HOST: redis
+  SPRING_DATA_MONGODB_HOST: mongodb
+
+services:
+  # -------------------------------------------------------------------------
+  # 02 - Communication
+  # -------------------------------------------------------------------------
+  api-gateway:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 02-communication/02a-api-gateway }
+    ports: ["8080:8080"]
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on: [redis]
+
+  bff:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 02-communication/02b-backend-for-frontend }
+    ports: ["8201:8201"]
+    environment:
+      <<: *eureka
+      SERVICES_ORDER_SERVICE_URL: http://sync-rest:8202
+      SERVICES_INVENTORY_SERVICE_URL: http://database-per-service:8311
+      SERVICES_PAYMENT_SERVICE_URL: http://circuit-breaker:8401
+    depends_on: [service-registry, sync-rest, database-per-service, circuit-breaker]
+
+  sync-rest:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 02-communication/02c-synchronous-rest }
+    ports: ["8202:8202"]
+    environment:
+      <<: *eureka
+      SERVICES_INVENTORY_SERVICE_URL: http://database-per-service:8311
+      SERVICES_PAYMENT_SERVICE_URL: http://circuit-breaker:8401
+    depends_on: [service-registry, database-per-service, circuit-breaker]
+
+  async-messaging:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 02-communication/02d-async-messaging }
+    ports: ["8203:8203"]
+    environment: { <<: *kafka }
+    depends_on: [kafka]
+
+  grpc-service:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 02-communication/02e-grpc-service }
+    ports:
+      - "8204:8204"
+      - "9094:9090"
+    depends_on: []
+
+  # -------------------------------------------------------------------------
+  # 03 - Data management
+  # -------------------------------------------------------------------------
+  database-per-service:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 03-data-management/03a-database-per-service }
+    ports: ["8311:8311"]
+    environment:
+      SERVER_PORT: 8311
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/orders_db
+      SPRING_DATASOURCE_USERNAME: micarch
+      SPRING_DATASOURCE_PASSWORD: micarch
+      SPRING_DATA_MONGODB_HOST: mongodb
+      SPRING_DATA_MONGODB_PORT: 27017
+      SPRING_DATA_MONGODB_DATABASE: products_db
+      SPRING_DATA_MONGODB_USERNAME: micarch
+      SPRING_DATA_MONGODB_PASSWORD: micarch
+      SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE: admin
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on: [postgres, mongodb, redis]
+
+  saga-choreography:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 03-data-management/03b-saga-choreography }
+    ports: ["8301:8301"]
+    environment: { <<: *kafka }
+    depends_on: [kafka]
+
+  saga-orchestration:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 03-data-management/03c-saga-orchestration }
+    ports: ["8303:8303"]
+    environment:
+      <<: *kafka
+      SAGA_INVENTORY_URL: http://database-per-service:8311
+      SAGA_PAYMENT_URL: http://circuit-breaker:8401
+    depends_on: [kafka, database-per-service, circuit-breaker]
+
+  cqrs:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 03-data-management/03d-cqrs }
+    ports: ["8304:8304"]
+    environment:
+      <<: *kafka
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/cqrs_write_db
+      SPRING_DATASOURCE_USERNAME: micarch
+      SPRING_DATASOURCE_PASSWORD: micarch
+      SPRING_DATA_MONGODB_HOST: mongodb
+      SPRING_DATA_MONGODB_PORT: 27017
+      SPRING_DATA_MONGODB_DATABASE: cqrs_read_db
+      SPRING_DATA_MONGODB_USERNAME: micarch
+      SPRING_DATA_MONGODB_PASSWORD: micarch
+      SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE: admin
+    depends_on: [postgres, mongodb, kafka]
+
+  event-sourcing:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 03-data-management/03e-event-sourcing }
+    ports: ["8305:8305"]
+    environment:
+      AXON_AXONSERVER_SERVERS: axonserver:8124
+    depends_on: [axonserver]
+
+  shared-database:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 03-data-management/03f-shared-database }
+    ports: ["8306:8306"]
+
+  # -------------------------------------------------------------------------
+  # 04 - Resilience
+  # -------------------------------------------------------------------------
+  circuit-breaker:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 04-resilience/04a-circuit-breaker }
+    ports: ["8401:8401"]
+    environment:
+      PAYMENT_SERVICE_URL: http://circuit-breaker-payment-target:8402
+    depends_on: [circuit-breaker-payment-target]
+
+  circuit-breaker-payment-target:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 04-resilience/04a-circuit-breaker }
+    ports: ["8412:8402"]
+    environment:
+      SPRING_PROFILES_ACTIVE: payment-target
+
+  retry-timeout:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 04-resilience/04b-retry-timeout }
+    ports: ["8422:8402"]
+
+  rate-limiter:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 04-resilience/04c-rate-limiter }
+    ports: ["8403:8403"]
+
+  sidecar:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 04-resilience/04d-sidecar }
+    ports: ["8404:8404"]
+
+  # -------------------------------------------------------------------------
+  # 05 - Discovery and configuration
+  # -------------------------------------------------------------------------
+  service-registry:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 05-discovery-config/05a-service-registry }
+    ports: ["8761:8761"]
+
+  centralized-config:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 05-discovery-config/05b-centralized-config }
+    ports: ["8888:8888"]
+    environment:
+      SPRING_CLOUD_CONFIG_SERVER_GIT_URI: file:/config-repo
+      SPRING_CLOUD_CONFIG_SERVER_GIT_CLONE_ON_START: "false"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://service-registry:8761/eureka/
+    depends_on: [service-registry]
+
+  service-mesh:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 05-discovery-config/05c-service-mesh }
+    ports: ["8501:8501"]
+    environment: { <<: *eureka }
+    depends_on: [service-registry]
+
+  # -------------------------------------------------------------------------
+  # 06 - Observability
+  # -------------------------------------------------------------------------
+  distributed-tracing:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 06-observability/06a-distributed-tracing }
+    ports: ["8601:8601"]
+    environment:
+      <<: *kafka
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    depends_on: [kafka, zipkin]
+
+  log-aggregation:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 06-observability/06b-log-aggregation }
+    ports: ["8602:8602"]
+    depends_on: [elasticsearch, logstash]
+
+  health-check-aggregation:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 06-observability/06c-health-check-aggregation }
+    ports: ["8091:8091"]
+    environment: { <<: *eureka }
+    depends_on: [service-registry]
+
+  # -------------------------------------------------------------------------
+  # 07 - Security
+  # -------------------------------------------------------------------------
+  oauth2-jwt:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 07-security/07a-oauth2-jwt }
+    ports: ["8701:8701"]
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/micarch/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/micarch
+    depends_on: [keycloak]
+
+  gateway-security:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 07-security/07b-api-gateway-security }
+    ports: ["8702:8702"]
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/micarch/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/micarch
+    depends_on: [keycloak]
+
+  # -------------------------------------------------------------------------
+  # 08 - Deployment patterns
+  # -------------------------------------------------------------------------
+  blue-green:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 08-deployment/08a-blue-green }
+    ports: ["8801:8801"]
+
+  canary:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 08-deployment/08b-canary }
+    ports: ["8802:8802"]
+
+  ambassador:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 08-deployment/08c-ambassador }
+    ports: ["8803:8803"]
+
+  # -------------------------------------------------------------------------
+  # 09 - Legacy integration patterns
+  # -------------------------------------------------------------------------
+  monolith:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 09-legacy-patterns/09a-monolith-starter }
+    ports: ["9001:9001"]
+
+  anti-corruption-layer:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 09-legacy-patterns/09b-anti-corruption-layer }
+    ports: ["9002:9002"]
+
+  shared-kernel:
+    <<: *app
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args: { MODULE: 09-legacy-patterns/09c-shared-kernel }
+    ports: ["9003:9003"]

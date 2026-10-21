@@ -1,67 +1,112 @@
-# 02b — Backend for Frontend (BFF)
+# 02B — Backend for Frontend (BFF)
 
-## What is it?
+The BFF pattern creates a backend tailored to a particular client experience.
+This module exposes mobile and web dashboard contracts from one Spring Boot
+process for learning; in production they can be deployed as separate BFFs.
 
-The **BFF** pattern creates a dedicated backend for each frontend client type (mobile, web, smart TV). Each BFF aggregates and shapes data specifically for its client's needs.
+Interview preparation: [`iprep.md`](iprep.md)
 
 ## Architecture
 
 ```mermaid
 graph TD
-    Mobile[📱 Mobile App] --> BFF_Mobile[BFF Mobile :8201]
-    Web[🌐 Web App] --> BFF_Web[BFF Web :8211]
-    TV[📺 Smart TV] --> BFF_TV[BFF TV :8221]
-
-    BFF_Mobile --> OrderSvc[Order Service]
-    BFF_Mobile --> InventorySvc[Inventory Service]
-    BFF_Mobile --> PaymentSvc[Payment Service]
-
-    BFF_Web --> OrderSvc
-    BFF_Web --> InventorySvc
-    BFF_Web --> ProductSvc[Product Service]
+    Mobile[Mobile App] --> MobileBFF[Mobile BFF :8201]
+    Web[Web App] --> WebBFF[Web BFF :8201]
+    MobileBFF --> Aggregator[Client-specific aggregator]
+    WebBFF --> Aggregator
+    Aggregator --> Orders[Order Service]
+    Aggregator --> Inventory[Inventory Service]
+    Aggregator --> Payments[Payment Service]
+    Aggregator --> MobileShape[Compact mobile response]
+    Aggregator --> WebShape[Rich web response]
 ```
 
-## Why Different BFFs?
+## Aggregation flow
 
-| Client | Needs | BFF Optimization |
-|--------|-------|-----------------|
-| Mobile | Small payload, battery optimization | Aggregates 5 calls into 1, strips unused fields |
-| Web | Rich data, real-time updates | Full payload, Server-Sent Events |
-| Smart TV | Simple navigation, large images | Pre-computed suggestions, image URLs only |
-
-## Key Implementation Pattern
-
-```java
-// Mobile BFF aggregates 3 downstream calls into 1
-@GetMapping("/dashboard")
-public Mono<MobileDashboard> getMobileDashboard(@RequestHeader("userId") String userId) {
-    return Mono.zip(
-        orderClient.getRecentOrders(userId, 3),     // Last 3 orders only
-        inventoryClient.getLowStockItems(),          // Relevant inventory
-        paymentClient.getPendingPayments(userId)    // Pending payments
-    ).map(tuple -> MobileDashboard.from(tuple.getT1(), tuple.getT2(), tuple.getT3()));
-}
+```mermaid
+sequenceDiagram
+    participant Mobile
+    participant BFF
+    participant Orders
+    participant Inventory
+    participant Payments
+    Mobile->>BFF: GET /api/mobile/dashboard/C1
+    BFF->>Orders: Recent orders
+    BFF->>Inventory: Low-stock items
+    BFF->>Payments: Pending payments
+    Orders-->>BFF: Order data
+    Inventory-->>BFF: Inventory data
+    Payments-->>BFF: Payment data
+    BFF-->>Mobile: Compact dashboard payload
 ```
 
-## Running the Demo
+## Client contracts
+
+| Client | Endpoint | Response strategy |
+|---|---|---|
+| Mobile | `/api/mobile/dashboard/{userId}` | Last three orders, pending payments, SKU-only low-stock list |
+| Web | `/api/web/dashboard/{userId}` | Full user, order, inventory, payment, and total-value data |
+
+The BFF owns representation shaping, not the underlying business truth. The
+`BffDataGateway` interface separates aggregation from downstream transport. The
+`demo` profile uses deterministic in-memory data; the default profile uses the
+HTTP adapter and configurable downstream URLs.
+
+## Configuration
+
+Defaults are in [`src/main/resources/application.yml`](src/main/resources/application.yml):
+
+| Setting | Default |
+|---|---|
+| Application port | `8201` |
+| Order service URL | `http://localhost:8101` |
+| Inventory service URL | `http://localhost:8301` |
+| Payment service URL | `http://localhost:8401` |
+| Eureka URL | `http://localhost:8761/eureka/` |
+
+## Build and run
+mvn test -pl 02-communication/02b-backend-for-frontend
+
+From this module directory:
 
 ```bash
-cd 02-communication/02b-backend-for-frontend
-mvn spring-boot:run
-
-# Swagger: http://localhost:8201/swagger-ui.html
+mvn clean verify
 ```
 
-## ✅ Pros
-- Each client gets exactly the data it needs (no over/under-fetching)
-- Teams can evolve their BFF independently
-- Well-suited for GraphQL
+From the repository root:
 
-## ❌ Cons
-- Code duplication across BFFs
-- More services to deploy and maintain
-- Risk of BFF becoming a God Service
+```bash
+mvn -pl 02-communication/02b-backend-for-frontend clean verify
+```
 
-## When to Use
-- Multiple client types with very different data needs
-- Mobile clients with bandwidth/battery constraints
+Run against configured downstream services:
+
+```bash
+mvn spring-boot:run
+```
+
+Run the self-contained deterministic demo:
+
+```bash
+mvn spring-boot:run "-Dspring-boot.run.profiles=demo"
+```
+
+Demo requests:
+
+```bash
+curl http://localhost:8201/api/mobile/dashboard/C1
+curl http://localhost:8201/api/web/dashboard/C1
+```
+
+Useful endpoints:
+
+- Swagger UI: <http://localhost:8201/swagger-ui.html>
+- Health: <http://localhost:8201/actuator/health>
+- Metrics: <http://localhost:8201/actuator/metrics>
+
+## Trade-offs
+
+A BFF reduces over-fetching and lets each client evolve independently, but it
+adds services, duplicated orchestration, and another latency boundary. Keep BFFs
+focused on client needs, enforce deadlines for downstream calls, and avoid
+turning one BFF into a shared domain service.

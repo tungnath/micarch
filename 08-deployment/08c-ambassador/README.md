@@ -52,6 +52,17 @@ curl -X POST http://localhost:8803/api/orders \
 - Risk of becoming a "leaky abstraction"
 
 ## When to Use
+
+## Configuration, Build, and Run
+
+Legacy endpoint and Resilience4j policies are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 08-deployment/08c-ambassador
+mvn spring-boot:run -pl 08-deployment/08c-ambassador
+```
+
+Call `GET /api/ambassador/legacy-order`; health is `/actuator/health`.
 - Integrating with legacy ERP/SOAP systems
 - Third-party APIs that aren't REST-friendly
 - Need to add resilience to unmodifiable external systems

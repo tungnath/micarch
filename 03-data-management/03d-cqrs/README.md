@@ -76,3 +76,14 @@ curl http://localhost:8304/api/queries/orders
 - High read/write ratio with different access patterns
 - Need precomputed, fast dashboard queries
 - Already using event sourcing or Kafka
+
+## Configuration, Build, and Run
+
+Production uses PostgreSQL for commands, MongoDB for the projection, and Kafka for events. Tests override the relational store with H2 and use embedded Kafka plus a MongoDB Testcontainer.
+
+```bash
+mvn test -pl 03-data-management/03d-cqrs
+mvn spring-boot:run -pl 03-data-management/03d-cqrs
+```
+
+Use `POST /api/commands/orders`, `PUT /api/commands/orders/{id}/confirm`, and `GET /api/queries/orders`. Health is `/actuator/health`.

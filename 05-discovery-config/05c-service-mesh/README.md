@@ -32,6 +32,17 @@ graph TD
 This module simulates a service mesh in pure Spring Boot — with Resilience4j for retry/CB and Eureka for discovery. In production, this would be Istio/Linkerd deploying Envoy sidecars.
 
 ## When to Use Real Istio/Linkerd
+
+## Configuration, Build, and Run
+
+Mesh policy and Eureka settings are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 05-discovery-config/05c-service-mesh
+mvn spring-boot:run -pl 05-discovery-config/05c-service-mesh
+```
+
+Call `GET /api/mesh/policy`; health is `/actuator/health`.
 - Your cluster has 20+ services
 - Need automatic mTLS between all services
 - Mixed language services (Java + Go + Python)

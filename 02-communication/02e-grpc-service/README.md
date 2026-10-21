@@ -1,81 +1,101 @@
-# 02e — gRPC Service
+# 02E — gRPC Service Communication
 
-## What is it?
-
-**gRPC** is a high-performance RPC framework using HTTP/2 and Protocol Buffers (Protobuf). Ideal for internal microservice communication where performance matters.
+This module demonstrates internal service-to-service communication with gRPC, HTTP/2,
+and Protocol Buffers. The service implements unary `PlaceOrder` and `GetOrder` calls
+plus server-streaming `ListOrders`.
 
 ## Architecture
 
 ```mermaid
-graph LR
-    Client[Client App] -->|"Proto request\n(binary over HTTP/2)"| GrpcServer[gRPC Server :9090]
-    GrpcServer --> Service[OrderService impl]
-    GrpcServer -->|"Reflection enabled"| GrpcUI["gRPC UI / grpcurl"]
-    style GrpcServer fill:#8b5cf6,color:#fff
+flowchart LR
+    Client[gRPC client / grpcurl] -->|Protobuf over HTTP/2| Server[gRPC server :9090]
+    Server --> Impl[OrderGrpcService]
+    Impl --> Store[(In-memory OrderStore)]
+    Server -. reflection .-> Tools[gRPC tooling]
+    Actuator[Spring actuator :8204] --> Server
 ```
 
-## Proto Definition
-
-```protobuf
-// src/main/proto/order.proto
-syntax = "proto3";
-package com.micarch.grpc;
-
-service OrderService {
-  rpc PlaceOrder (PlaceOrderRequest) returns (PlaceOrderResponse);
-  rpc GetOrder   (GetOrderRequest)   returns (OrderResponse);
-  rpc ListOrders (ListOrdersRequest) returns (stream OrderResponse); // Server streaming
-}
-
-message PlaceOrderRequest {
-  string customer_id = 1;
-  string product_id  = 2;
-  int32  quantity    = 3;
-  double unit_price  = 4;
-}
-
-message PlaceOrderResponse {
-  string order_id = 1;
-  string status   = 2;
-}
+```mermaid
+sequenceDiagram
+    participant C as gRPC client
+    participant S as OrderService
+    participant D as OrderStore
+    C->>S: PlaceOrder(request)
+    S->>D: save accepted order
+    S-->>C: PlaceOrderResponse
+    C->>S: ListOrders(customer_id)
+    loop each matching order
+        S-->>C: OrderResponse stream item
+    end
+    S-->>C: stream completed
 ```
 
-## gRPC vs REST Comparison
+## Contract
 
-| Feature | gRPC | REST (JSON) |
-|---------|------|-------------|
-| Protocol | HTTP/2 | HTTP/1.1 |
-| Serialization | Protobuf (binary) | JSON (text) |
-| Speed | ~7x faster | Baseline |
-| Streaming | Bidirectional | SSE / WebSockets only |
-| Contract | Strict .proto | OpenAPI (optional) |
-| Browser support | ❌ (needs grpc-web) | ✅ Native |
+The source contract is [`src/main/proto/order.proto`](src/main/proto/order.proto).
+Maven generates Java message and service classes during `generate-sources`.
 
-## Running the Demo
+| RPC | Type | Purpose |
+|---|---|---|
+| `PlaceOrder` | Unary | Validates and accepts an order |
+| `GetOrder` | Unary | Reads one order by ID; returns `NOT_FOUND` when absent |
+| `ListOrders` | Server streaming | Streams orders for a customer, or all orders when the filter is blank |
+
+## Configuration
+
+| Property | Default | Purpose |
+|---|---|---|
+| `server.port` | `8204` | Spring HTTP actuator/OpenAPI port |
+| `grpc.server.port` | `9090` | gRPC HTTP/2 port |
+| `grpc.server.enable-reflection` | `true` | Enables grpcurl discovery |
+
+The order store is intentionally in memory for the communication example. A production
+service would use a database/repository and enforce authorization, deadlines, retries,
+structured error details, and mTLS at the platform or gRPC layer.
+
+## Build and run
+mvn test -pl 02-communication/02e-grpc-service
+
+From the repository root:
 
 ```bash
-# gRPC server starts on port 9090, REST actuator on 8204
-cd 02-communication/02e-grpc-service
-mvn spring-boot:run
-
-# Test with grpcurl (needs grpc-tools)
-grpcurl -plaintext localhost:9090 list
-grpcurl -plaintext -d '{"customer_id":"C1","product_id":"P1","quantity":2,"unit_price":49.99}' \
-    localhost:9090 com.micarch.grpc.OrderService/PlaceOrder
+mvn -pl 02-communication/02e-grpc-service clean verify
+mvn -pl 02-communication/02e-grpc-service spring-boot:run
 ```
 
-## ✅ Pros
-- 5-7x faster than JSON over HTTP/1.1
-- Strong type safety via Protobuf contracts
-- Bidirectional streaming for real-time data
-- Code generation reduces boilerplate
+The first build downloads the platform-specific `protoc` compiler and generates the
+Java classes from `order.proto`.
 
-## ❌ Cons
-- Not human-readable (binary)
-- Browser clients need grpc-web proxy
-- Versioning contract changes is delicate
+With `grpcurl` installed:
 
-## When to Use
-- Internal service-to-service communication
-- High throughput low-latency requirements (ML, IoT, trading)
-- Need streaming (e.g., live dashboards, log tailing)
+```bash
+grpcurl -plaintext localhost:9090 list
+grpcurl -plaintext localhost:9090 describe com.micarch.grpc.OrderService
+grpcurl -plaintext -d '{"customer_id":"C1","product_id":"P1","quantity":2,"unit_price":49.99}' \
+  localhost:9090 com.micarch.grpc.OrderService/PlaceOrder
+grpcurl -plaintext -d '{"customer_id":"C1"}' \
+  localhost:9090 com.micarch.grpc.OrderService/ListOrders
+```
+
+Health is available at `http://localhost:8204/actuator/health`.
+
+## gRPC versus REST
+
+| Concern | gRPC | REST/JSON |
+|---|---|---|
+| Transport | HTTP/2 | Commonly HTTP/1.1 |
+| Encoding | Compact Protobuf | Human-readable JSON |
+| Contract | Required `.proto` schema | OpenAPI is usually optional |
+| Streaming | Unary, server, client, and bidirectional | Requires separate streaming technology |
+| Browser support | Usually grpc-web/proxy | Native |
+
+## Trade-offs
+
+gRPC gives strong contracts, efficient serialization, multiplexed HTTP/2 transport, and
+first-class streaming. It is less convenient for browsers and manual debugging, and
+schema evolution, deadlines, status mapping, and observability must be designed carefully.
+
+## Interview preparation
+
+See [iprep.md](iprep.md) for gRPC design questions, tricky HTTP/2 and Protobuf details,
+failure handling, and a production checklist.

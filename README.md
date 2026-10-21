@@ -200,6 +200,10 @@ Started via `docker-compose up -d`:
 | Logstash | Log aggregation pipeline | 5044 |
 | Spring Boot Admin | Service health dashboard | 8091 |
 
+For infrastructure-only startup and application containers for modules 02–09,
+see [DOCKER.md](DOCKER.md). The application layer is started with
+`docker-compose.modules.yml` and the `apps` profile.
+
 ---
 
 ## 🎓 Learning Path

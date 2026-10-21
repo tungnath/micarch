@@ -4,6 +4,7 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.RestTemplate;
 
 /**
@@ -27,6 +28,9 @@ public class OrderService {
 
     private final RestTemplate restTemplate;
 
+    @Value("${payment.service.url:http://localhost:8402}")
+    private String paymentServiceUrl;
+
     public OrderService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
@@ -42,7 +46,7 @@ public class OrderService {
         log.info("Calling payment service for order {}", orderId);
         // Flakey downstream — deliberately returns 500 every other call in the demo
         String response = restTemplate.getForObject(
-                "http://localhost:8402/api/payment/{orderId}?amount={amount}",
+                paymentServiceUrl + "/api/payment/{orderId}?amount={amount}",
                 String.class, orderId, amount);
         log.info("Payment response: {}", response);
         return response;

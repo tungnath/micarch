@@ -28,18 +28,19 @@ eureka:
     prefer-ip-address: true
 
 # OpenFeign configuration
-feign:
-  client:
-    config:
-      inventory-service:
-        connect-timeout: 2000
-        read-timeout: 5000
-        logger-level: FULL
-  compression:
-    request:
-      enabled: true
-    response:
-      enabled: true
+  cloud:
+    openfeign:
+      client:
+        config:
+          inventory-service:
+            connect-timeout: 2000
+            read-timeout: 5000
+            logger-level: FULL
+      compression:
+        request:
+          enabled: true
+        response:
+          enabled: true
 
 management:
   endpoints:
@@ -55,3 +56,21 @@ logging:
   level:
     com.micarch.rest: DEBUG
     feign: DEBUG
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: demo
+  cloud:
+    discovery:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+services:
+  inventory-service-url: http://localhost:8202
+  payment-service-url: http://localhost:8202

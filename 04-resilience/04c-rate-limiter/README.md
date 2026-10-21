@@ -63,3 +63,14 @@ done
 - Public APIs exposed to the internet
 - Free tier / paid tier differentiation
 - Internal services at risk of being hammered by batch jobs
+
+## Configuration, Build, and Run
+
+The `publicApi` limiter and Bucket4j settings are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 04-resilience/04c-rate-limiter
+mvn spring-boot:run -pl 04-resilience/04c-rate-limiter
+```
+
+Call `GET /api/limited` repeatedly to observe the configured limit.

@@ -53,3 +53,39 @@ management:
     web:
       exposure:
         include: health,info,gateway,metrics
+
+gateway:
+  security:
+    demo-token: demo-token
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: demo
+  cloud:
+    discovery:
+      enabled: false
+    gateway:
+      routes:
+        - id: order-service-demo
+          uri: forward:/__gateway-demo/orders
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - AuthenticationFilter
+        - id: product-service-demo
+          uri: forward:/__gateway-demo/products
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - AuthenticationFilter
+        - id: user-service-demo
+          uri: forward:/__gateway-demo/users
+          predicates:
+            - Path=/api/users/**
+
+eureka:
+  client:
+    enabled: false

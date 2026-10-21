@@ -60,3 +60,14 @@ mvn spring-boot:run
 - Microservices in production with independent scaling
 - Different access patterns per service (OLTP vs OLAP)
 - Teams have full ownership of their service + database
+
+## Configuration, Build, and Run
+
+Runtime configuration is in `src/main/resources/application.yml`: PostgreSQL owns orders, MongoDB owns products, and Redis owns cart/session data.
+
+```bash
+mvn test -pl 03-data-management/03a-database-per-service
+mvn spring-boot:run -pl 03-data-management/03a-database-per-service
+```
+
+The demo endpoints are `POST/GET /api/orders/{id}` and `POST/GET /api/products/{id}`. Health is `/actuator/health`.

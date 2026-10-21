@@ -2,12 +2,12 @@ package com.micarch.messaging.order;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -21,14 +21,18 @@ import java.util.concurrent.CompletableFuture;
  */
 @RestController
 @RequestMapping("/api/orders")
-@RequiredArgsConstructor
 @Tag(name = "Async Messaging", description = "Kafka producer — publishes events for async consumers")
 public class OrderProducerController {
 
     private static final Logger log = LoggerFactory.getLogger(OrderProducerController.class);
-    private static final String TOPIC = "order-events";
-
     private final KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate;
+    private final String topic;
+
+    public OrderProducerController(KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate,
+                                   @Value("${kafka.topics.order-created:order-events}") String topic) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.topic = topic;
+    }
 
     public record PlaceOrderRequest(String customerId, String productId, int quantity, BigDecimal unitPrice) {
 
@@ -45,7 +49,7 @@ public class OrderProducerController {
         );
 
         CompletableFuture<SendResult<String, OrderCreatedEvent>> future
-                = kafkaTemplate.send(TOPIC, orderId, event);
+                = kafkaTemplate.send(topic, orderId, event);
 
         future.whenComplete((result, ex) -> {
             if (ex != null) {

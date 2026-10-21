@@ -39,7 +39,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @EmbeddedKafka(partitions = 1, topics = {"order-events"})
 @TestPropertySource(properties = {
     "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
-    "spring.kafka.consumer.auto-offset-reset=earliest"
+    "spring.kafka.consumer.auto-offset-reset=earliest",
+    "spring.datasource.url=jdbc:h2:mem:cqrs-test;DB_CLOSE_DELAY=-1",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
 })
 class CqrsIntegrationTest {
 

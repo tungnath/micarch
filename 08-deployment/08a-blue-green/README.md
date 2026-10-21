@@ -56,5 +56,16 @@ curl -X POST http://localhost:8801/actuator/gateway/refresh
 - Stateful services (sessions) need sticky routing during transition
 
 ## When to Use
+
+## Configuration, Build, and Run
+
+Active/standby route URIs are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 08-deployment/08a-blue-green
+mvn spring-boot:run -pl 08-deployment/08a-blue-green
+```
+
+Call `GET /deployment/state`; switch the default route URI to roll back or promote.
 - Zero-downtime requirement for critical services
 - High-risk deployments needing instant rollback capability

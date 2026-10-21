@@ -37,13 +37,13 @@ public class OrderCommandController {
 
     @PutMapping("/{id}/confirm")
     @Operation(summary = "Confirm an order")
-    public ResponseEntity<OrderAggregate> confirm(@PathVariable Long id) {
+    public ResponseEntity<OrderAggregate> confirm(@PathVariable("id") Long id) {
         return ResponseEntity.accepted().body(commandService.confirmOrder(id));
     }
 
     @PutMapping("/{id}/cancel")
     @Operation(summary = "Cancel an order")
-    public ResponseEntity<OrderAggregate> cancel(@PathVariable Long id) {
+    public ResponseEntity<OrderAggregate> cancel(@PathVariable("id") Long id) {
         return ResponseEntity.accepted().body(commandService.cancelOrder(id));
     }
 }

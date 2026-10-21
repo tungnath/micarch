@@ -89,3 +89,14 @@ curl -X POST http://localhost:8305/api/orders \
 - Financial systems requiring complete audit trail
 - Complex domains with many state transitions
 - Need temporal queries (what was the state at time T?)
+
+## Configuration, Build, and Run
+
+Axon Server connection settings and the H2 projection datasource are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 03-data-management/03e-event-sourcing
+mvn spring-boot:run -pl 03-data-management/03e-event-sourcing
+```
+
+Commands are exposed under `/api/orders`; the read projection is available from `GET /api/orders` and `/api/orders/{id}`. Health is `/actuator/health`.

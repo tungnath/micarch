@@ -5,6 +5,10 @@ spring:
   application:
     name: circuit-breaker-demo
 
+payment:
+  service:
+    url: http://localhost:8402
+
 resilience4j:
   circuitbreaker:
     instances:

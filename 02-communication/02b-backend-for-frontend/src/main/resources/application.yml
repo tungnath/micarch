@@ -40,3 +40,17 @@ services:
 logging:
   level:
     com.micarch.bff: DEBUG
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: demo
+  cloud:
+    discovery:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false

@@ -55,6 +55,17 @@ mvn spring-boot:run
 - Not suitable as a production monitoring replacement (use Prometheus + Grafana)
 
 ## When to Use
+
+## Configuration, Build, and Run
+
+Spring Boot Admin and Eureka settings are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 06-observability/06c-health-check-aggregation
+mvn spring-boot:run -pl 06-observability/06c-health-check-aggregation
+```
+
+Call `GET /api/health/summary`; the Admin UI is served by the configured port.
 - Dev/Test environments for quick service overview
 - When Grafana/Datadog is not yet set up
 - Need to change log levels in production without redeployment

@@ -62,6 +62,17 @@ mvn spring-boot:run
 - Token relay means downstream services don't verify signatures (trust gateway)
 
 ## When to Use
+
+## Configuration, Build, and Run
+
+Keycloak issuer/JWKS settings and gateway route policy are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 07-security/07b-api-gateway-security
+mvn spring-boot:run -pl 07-security/07b-api-gateway-security
+```
+
+Public policy is visible at `/public/security-policy`; health is `/actuator/health`.
 - Public API with OAuth2 external users
 - Need role-based API routing at the edge
 - Keycloak already in the stack

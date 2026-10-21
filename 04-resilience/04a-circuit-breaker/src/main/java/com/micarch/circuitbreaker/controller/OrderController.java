@@ -35,7 +35,7 @@ public class OrderController {
     @Operation(
             summary = "Process payment with Circuit Breaker",
             description = "Calls downstream payment service. CB opens after repeated failures.")
-    public String processPayment(@PathVariable String orderId, @RequestParam double amount) {
+    public String processPayment(@PathVariable("orderId") String orderId, @RequestParam("amount") double amount) {
         return orderService.processPayment(orderId, amount);
     }
 }

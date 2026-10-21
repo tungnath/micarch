@@ -55,6 +55,17 @@ mvn spring-boot:run
 - Creates coupling between otherwise independent contexts
 
 ## When to Use
+
+## Configuration, Build, and Run
+
+Shared value-object settings are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 09-legacy-patterns/09c-shared-kernel
+mvn spring-boot:run -pl 09-legacy-patterns/09c-shared-kernel
+```
+
+Call `GET /api/shared-kernel/money`; health is `/actuator/health`.
 - 2-3 teams sharing stable utility types like Money or Address
 - Small enough shared content that coordination is manageable
 - Not as an alternative to designing proper bounded contexts

@@ -1,72 +1,125 @@
-# 02c — Synchronous REST with OpenFeign
+# 02C — Synchronous REST with OpenFeign
 
-## What is it?
+This module demonstrates synchronous service-to-service communication with
+Spring Cloud OpenFeign. The order workflow checks inventory, reserves stock,
+and captures payment before returning a final response to the caller.
 
-Demonstrates inter-service HTTP communication using **Spring Cloud OpenFeign** — a declarative REST client that eliminates boilerplate and integrates with Eureka load balancing.
+Interview preparation: [`iprep.md`](iprep.md)
 
 ## Architecture
 
 ```mermaid
 sequenceDiagram
-    Client->>+OrderService: POST /api/orders
-    OrderService->>+InventoryService: GET /api/inventory/{productId} (via Feign)
-    InventoryService-->>-OrderService: 200 OK {stock: 42}
-    OrderService->>+PaymentService: POST /api/payments (via Feign)
-    PaymentService-->>-OrderService: 200 OK {paymentId: "PAY-123"}
-    OrderService-->>-Client: 201 Created {orderId: "ORD-456"}
+    participant Client
+    participant Order as Order Service :8202
+    participant Inventory as Inventory Service
+    participant Payment as Payment Service
+    Client->>Order: POST /api/orders
+    Order->>Inventory: GET stock via Feign
+    Inventory-->>Order: Stock response
+    Order->>Inventory: PUT reserve via Feign
+    Inventory-->>Order: 204 No Content
+    Order->>Payment: POST capture via Feign
+    Payment-->>Order: Payment result
+    Order-->>Client: 201 CONFIRMED or 409 REJECTED
 ```
 
-## Feign Client Example
+## Synchronous failure boundary
 
-```java
-// One annotation = full REST client with Eureka load balancing
-@FeignClient(name = "inventory-service", fallbackFactory = InventoryFallback.class)
-public interface InventoryClient {
+```mermaid
+stateDiagram-v2
+    [*] --> CheckingStock
+    CheckingStock --> Rejected: Insufficient stock
+    CheckingStock --> ReservingStock: Stock available
+    ReservingStock --> CapturingPayment: Reservation succeeds
+    ReservingStock --> Failed: Network/error response
+    CapturingPayment --> Confirmed: Payment captured
+    CapturingPayment --> Rejected: Payment declined
+    Confirmed --> [*]
+    Rejected --> [*]
+    Failed --> [*]
+```
 
-    @GetMapping("/api/inventory/{productId}")
-    StockResponse checkStock(@PathVariable("productId") String productId);
+The synchronous chain is intentionally simple for learning. In production,
+reservation and payment usually need compensation, idempotency, timeouts,
+circuit breakers, and often a saga rather than one blocking request chain.
 
-    @PutMapping("/api/inventory/{productId}/reserve")
-    void reserveStock(@PathVariable("productId") String productId,
-                      @RequestParam int quantity);
+## API
+
+```http
+POST /api/orders
+Content-Type: application/json
+
+{
+  "productId": "P-1",
+  "quantity": 2,
+  "unitPrice": 49.99
 }
 ```
 
-## Feign vs RestTemplate vs WebClient
+Successful orders return `201 Created`; insufficient stock or declined payment
+returns `409 Conflict` with a rejection reason.
 
-| Feature | OpenFeign | RestTemplate | WebClient |
-|---------|-----------|-------------|-----------|
-| Style | Declarative | Imperative | Reactive |
-| Load balancing | ✅ Automatic | Manual | Manual |
-| Fallbacks | ✅ Native | ❌ Manual | ❌ Manual |
-| Reactive | ❌ | ❌ | ✅ |
-| Boilerplate | Minimal | High | Medium |
+## Configuration
 
-## Running the Demo
+Defaults are in [`src/main/resources/application.yml`](src/main/resources/application.yml):
+
+| Setting | Default |
+|---|---|
+| Application port | `8202` |
+| Inventory service URL | `http://localhost:8301` |
+| Payment service URL | `http://localhost:8401` |
+| Feign connect timeout | 2 seconds |
+| Feign read timeout | 5 seconds |
+| Eureka URL | `http://localhost:8761/eureka/` |
+
+The `demo` profile points both Feign clients to this application on port 8202,
+where deterministic downstream controllers simulate inventory and payment.
+
+## Build and run
+mvn test -pl 02-communication/02c-synchronous-rest
+
+From this module directory:
 
 ```bash
-# Start Eureka first
-cd 05-discovery-config/05a-service-registry
-mvn spring-boot:run
-
-# Then start sync-rest
-cd 02-communication/02c-synchronous-rest
-mvn spring-boot:run
-
-# Swagger: http://localhost:8202/swagger-ui.html
+mvn clean verify
 ```
 
-## ✅ Pros
-- Declarative, minimal boilerplate
-- Built-in Eureka load balancing
-- Easy fallback/circuit breaker integration
+From the repository root:
 
-## ❌ Cons
-- Tight temporal coupling (both services must be up)
-- Cascading failure risk without circuit breaker
-- Performance limited by slowest downstream call
+```bash
+mvn -pl 02-communication/02c-synchronous-rest clean verify
+```
 
-## When to Use
-- Simple request/response patterns
-- Both services expected to be always up
-- Latency is acceptable (< 200ms)
+Run against independently deployed services:
+
+```bash
+mvn spring-boot:run
+```
+
+Run the self-contained demo:
+
+```bash
+mvn spring-boot:run "-Dspring-boot.run.profiles=demo"
+```
+
+Demo request:
+
+```bash
+curl -X POST http://localhost:8202/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{"productId":"P-1","quantity":2,"unitPrice":49.99}'
+```
+
+Useful endpoints:
+
+- Swagger UI: <http://localhost:8202/swagger-ui.html>
+- Health: <http://localhost:8202/actuator/health>
+- H2 console: <http://localhost:8202/h2-console>
+
+## Trade-offs
+
+Feign is concise and readable, but synchronous calls create temporal coupling and
+latency accumulation. Every downstream call should have a deadline and explicit
+failure policy. Use asynchronous messaging or a saga when the business workflow
+does not need an immediate final answer.

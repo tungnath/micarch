@@ -67,6 +67,17 @@ mvn spring-boot:run
 - Requires log format standardization
 
 ## When to Use
+
+## Configuration, Build, and Run
+
+Structured console logging is configured in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 06-observability/06b-log-aggregation
+mvn spring-boot:run -pl 06-observability/06b-log-aggregation
+```
+
+Call `GET /api/logs/sample`; health is `/actuator/health`.
 - More than 3 services in production
 - Need to debug issues that span multiple services
 - Compliance requiring log retention

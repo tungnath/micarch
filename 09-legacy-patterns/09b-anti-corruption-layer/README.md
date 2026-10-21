@@ -69,6 +69,17 @@ mvn spring-boot:run
 - Can become complex if legacy model is very different
 
 ## When to Use
+
+## Configuration, Build, and Run
+
+Legacy endpoint and field mappings are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 09-legacy-patterns/09b-anti-corruption-layer
+mvn spring-boot:run -pl 09-legacy-patterns/09b-anti-corruption-layer
+```
+
+Use `POST /api/acl/translate`; health is `/actuator/health`.
 - Integrating with any external system whose model doesn't fit your domain
 - Migrating from a monolith to microservices incrementally
 - Working with third-party APIs with different conventions

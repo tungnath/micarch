@@ -58,6 +58,17 @@ mvn spring-boot:run
 - Requires good metrics infrastructure for auto-rollback
 
 ## When to Use
+
+## Configuration, Build, and Run
+
+Stable/canary weights and promotion thresholds are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 08-deployment/08b-canary
+mvn spring-boot:run -pl 08-deployment/08b-canary
+```
+
+Use `GET /deployment/canary` and `POST /deployment/canary/weight?percent=20`.
 - Releasing features that need real-user validation
 - Low confidence in new version's correctness
 - A/B testing new features

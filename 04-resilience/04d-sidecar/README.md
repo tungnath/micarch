@@ -49,3 +49,14 @@ mvn spring-boot:run
 
 ## Real World
 Envoy Proxy (used by Istio) is the industry-standard sidecar implementation. This module simulates its behavior in pure Spring Boot.
+
+## Configuration, Build, and Run
+
+Proxy policy and upstream settings are in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 04-resilience/04d-sidecar
+mvn spring-boot:run -pl 04-resilience/04d-sidecar
+```
+
+Call `GET /api/sidecar/policy`; health is `/actuator/health`.

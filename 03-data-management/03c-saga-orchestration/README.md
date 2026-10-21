@@ -63,3 +63,14 @@ mvn spring-boot:run
 - Complex multi-step workflows where visibility matters
 - Need to audit every step of a transaction
 - Team with less Kafka expertise (choreography is harder to debug)
+
+## Configuration, Build, and Run
+
+Participant URLs are configured under `services.*` in `src/main/resources/application.yml`.
+
+```bash
+mvn test -pl 03-data-management/03c-saga-orchestration
+mvn spring-boot:run -pl 03-data-management/03c-saga-orchestration
+```
+
+Call `POST /api/sagas` with `{"orderId":"O-1","quantity":1,"paymentAmount":100}`. Health is `/actuator/health`.

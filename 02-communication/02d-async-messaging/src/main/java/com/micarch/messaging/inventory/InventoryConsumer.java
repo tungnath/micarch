@@ -23,6 +23,12 @@ public class InventoryConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(InventoryConsumer.class);
 
+    private final ProcessedOrderStore processedOrderStore;
+
+    public InventoryConsumer(ProcessedOrderStore processedOrderStore) {
+        this.processedOrderStore = processedOrderStore;
+    }
+
     @RetryableTopic(
             attempts = "4",
             backoff = @Backoff(delay = 1000, multiplier = 2.0, random = true),
@@ -32,12 +38,18 @@ public class InventoryConsumer {
             containerFactory = "kafkaListenerContainerFactory")
     public void consume(ConsumerRecord<String, OrderCreatedEvent> record, Acknowledgment ack) {
         OrderCreatedEvent event = record.value();
+        if (processedOrderStore.contains(event.orderId())) {
+            log.info("INVENTORY: Ignoring duplicate orderId={}", event.orderId());
+            ack.acknowledge();
+            return;
+        }
         log.info("INVENTORY: Processing OrderCreatedEvent orderId={} productId={} qty={}",
                 event.orderId(), event.productId(), event.quantity());
 
         try {
             // Simulate inventory reservation logic
             reserveStock(event.productId(), event.quantity());
+            processedOrderStore.markProcessed(event.orderId());
 
             log.info("INVENTORY: Stock reserved for orderId={} productId={} qty={}",
                     event.orderId(), event.productId(), event.quantity());
@@ -62,8 +74,8 @@ public class InventoryConsumer {
     }
 
     private void reserveStock(String productId, int quantity) {
-        // Simulate 20% failure rate to demonstrate retry behavior
-        if (Math.random() < 0.2) {
+        // A deterministic trigger keeps retry demonstrations and tests reproducible.
+        if ("RETRY".equalsIgnoreCase(productId)) {
             log.warn("INVENTORY: Simulated transient failure for productId={}", productId);
             throw new RuntimeException("Simulated transient DB error — will be retried");
         }

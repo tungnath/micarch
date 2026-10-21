@@ -64,11 +64,13 @@ Payment processing is simulated. The success probability is configurable with `d
 
 ## Start infrastructure
 
-Use the module compose file to avoid colliding with the root project infrastructure:
+For the complete repository Docker environment, start the shared infrastructure
+and this application from the repository root:
 
 ```bash
-cd 01-decomposition/01a-domain-driven-decomposition
 docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.modules.yml \
+  --profile apps up -d --build ddd-ecommerce postgres kafka zookeeper
 ```
 
 | Dependency | Address |
@@ -77,7 +79,12 @@ docker compose up -d
 | Kafka | `localhost:9093` |
 | Kafka UI | <http://localhost:9094> |
 
-The module creates the three schemas from [`infra/init.sql`](infra/init.sql).
+The module uses the root PostgreSQL and Kafka containers when started through
+the application overlay. The `ddd_ecommerce` database is created by the root
+PostgreSQL image initialization script.
+
+For the module-local isolated infrastructure, the legacy compose file remains
+available under this module directory.
 
 ## Configuration
 

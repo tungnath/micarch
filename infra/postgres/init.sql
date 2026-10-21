@@ -11,6 +11,7 @@ CREATE DATABASE cqrs_write;
 CREATE DATABASE cqrs_write_db;
 CREATE DATABASE cqrs_read;
 CREATE DATABASE cqrs_read_db;
+CREATE DATABASE ddd_ecommerce;
 
 -- Grant all privileges to micarch user
 GRANT ALL PRIVILEGES ON DATABASE orders TO micarch;
@@ -25,3 +26,4 @@ GRANT ALL PRIVILEGES ON DATABASE cqrs_write TO micarch;
 GRANT ALL PRIVILEGES ON DATABASE cqrs_write_db TO micarch;
 GRANT ALL PRIVILEGES ON DATABASE cqrs_read TO micarch;
 GRANT ALL PRIVILEGES ON DATABASE cqrs_read_db TO micarch;
+GRANT ALL PRIVILEGES ON DATABASE ddd_ecommerce TO micarch;

@@ -93,6 +93,20 @@ mvn test
 
 The integration tests run the gateway with the `demo` profile and verify both route branches through `WebTestClient`.
 
+## Docker
+
+From the repository root, build and run the gateway with the DDD application
+and legacy monolith containers:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.modules.yml \
+  --profile apps up -d --build strangler-fig ddd-ecommerce monolith postgres kafka zookeeper
+```
+
+The gateway is available at <http://localhost:8102>. The container overlay
+routes the new-service target to `ddd-ecommerce:8101` and the legacy target to
+`monolith:9001`.
+
 ## Build and run
 
 Build and test from this module directory:

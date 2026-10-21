@@ -88,6 +88,18 @@ From the repository root:
 mvn -pl 01-decomposition/01c-bulkhead clean verify
 ```
 
+## Docker
+
+From the repository root:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.modules.yml \
+  --profile apps up -d --build bulkhead
+```
+
+The container exposes the API on port `8103` and does not require shared
+infrastructure.
+
 ## Run and observe
 
 ```bash

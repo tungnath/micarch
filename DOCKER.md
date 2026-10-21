@@ -5,7 +5,7 @@ The repository has two Compose layers:
 | File | Purpose |
 |---|---|
 | `docker-compose.yml` | Shared infrastructure: Kafka, PostgreSQL, MongoDB, Redis, Axon Server, Zipkin, Keycloak, ELK, and Spring Boot Admin |
-| `docker-compose.modules.yml` | Application containers for every example in modules 02–09 |
+| `docker-compose.modules.yml` | Application containers for every example in modules 01–09 |
 
 ## Start infrastructure only
 
@@ -14,7 +14,7 @@ docker compose up -d
 docker compose ps
 ```
 
-## Build and start modules 02–09
+## Build and start modules 01–09
 
 Run this from the repository root. The first run builds each selected module
 with Maven inside its Docker build stage.
@@ -56,6 +56,7 @@ with these collision-safe mappings:
 
 | Module | Compose service | Host port |
 |---|---|---:|
+| 01a–01c | `ddd-ecommerce`, `strangler-fig`, `bulkhead` | 8101–8103 |
 | 02a–02e | `api-gateway`, `bff`, `sync-rest`, `async-messaging`, `grpc-service` | 8080, 8201–8204 |
 | 03a–03f | `database-per-service`, `saga-choreography`, `saga-orchestration`, `cqrs`, `event-sourcing`, `shared-database` | 8311, 8301, 8303–8306 |
 | 04a–04d | `circuit-breaker`, `retry-timeout`, `rate-limiter`, `sidecar` | 8401, 8422, 8403–8404 |

@@ -8,6 +8,8 @@ This module demonstrates decomposing an e-commerce monolith into three DDD bound
 
 For this learning module the contexts run inside one Spring Boot process so the complete flow is easy to start. They are isolated by package boundaries, PostgreSQL schemas, aggregate ownership, and Kafka integration events. In a production decomposition, each context can be extracted into its own deployable service without changing its domain model.
 
+Interview preparation: [`iprep.md`](iprep.md)
+
 ## Architecture
 
 ```mermaid

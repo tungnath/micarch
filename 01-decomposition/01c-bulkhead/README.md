@@ -2,6 +2,8 @@
 
 The Bulkhead pattern partitions concurrency so an overloaded or slow operation cannot consume every worker available to the application. This module demonstrates both Resilience4j bulkhead types.
 
+Interview preparation: [`iprep.md`](iprep.md)
+
 ## Architecture
 
 ```mermaid

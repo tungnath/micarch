@@ -2,6 +2,8 @@
 
 The Strangler Fig pattern migrates a legacy application incrementally. A gateway is placed in front of the monolith, then individual routes are redirected to replacement services while all remaining traffic continues to use the legacy application.
 
+Interview preparation: [`iprep.md`](iprep.md)
+
 ## Routing model
 
 ```mermaid

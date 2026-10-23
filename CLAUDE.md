@@ -122,3 +122,19 @@ broad destructive cleanup.
 
 Update both `CLAUDE.md` and `codex.md` when a meaningful implementation,
 Docker, testing, or continuation-state change is completed.
+
+## Latest CQRS check — 03d
+
+The CQRS module was cross-checked on 2026-10-23. Its invalid Hibernate
+configuration value `ddl-auto: create-if-not-exists` was corrected to the
+valid `ddl-auto: update` value in
+`03-data-management/03d-cqrs/src/main/resources/application.yml`.
+
+The module compiles and packages successfully with tests skipped. Its
+integration test discovers Docker when run with host-level access, but the
+first-time Testcontainers Ryuk/MongoDB startup is very slow and did not reach
+the CQRS assertions during the last run. Resume with:
+
+```bash
+mvn -pl 03-data-management/03d-cqrs -am test
+```
